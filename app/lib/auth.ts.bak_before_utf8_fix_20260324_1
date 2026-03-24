@@ -1,14 +1,9 @@
 import axios from "axios";
-<<<<<<< HEAD
-=======
 import { API_BASE_URL } from "./api";
->>>>>>> master
 
 export interface AuthUser {
   name: string;
   email: string;
-<<<<<<< HEAD
-=======
   avatar_url?: string;
   created_at?: string;
   target_role?: string;
@@ -39,15 +34,10 @@ function parseSkills(value: unknown): string[] {
   if (Array.isArray(value)) return value.map((x) => String(x)).filter((x) => x.trim().length > 0);
   if (typeof value === "string" && value.trim()) return value.split(",").map((x) => x.trim()).filter(Boolean);
   return [];
->>>>>>> master
 }
 
 const CURRENT_USER_KEY = "aii_current_user";
 const AUTH_TOKEN_KEY = "aii_auth_token";
-<<<<<<< HEAD
-const API_BASE_URL = "http://121.41.208.145:8000";
-=======
->>>>>>> master
 
 function isBrowser() {
   return typeof window !== "undefined";
@@ -60,9 +50,6 @@ export function getCurrentUser(): AuthUser | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed?.email || !parsed?.name) return null;
-<<<<<<< HEAD
-    return { name: String(parsed.name), email: String(parsed.email) };
-=======
     return {
       name: String(parsed.name),
       email: String(parsed.email),
@@ -75,7 +62,6 @@ export function getCurrentUser(): AuthUser | null {
       skills: parseSkills(parsed.skills),
       bio: parsed.bio ? String(parsed.bio) : undefined,
     };
->>>>>>> master
   } catch {
     return null;
   }
@@ -90,11 +76,7 @@ export function getAuthToken(): string | null {
   return localStorage.getItem(AUTH_TOKEN_KEY);
 }
 
-<<<<<<< HEAD
-function authHeaders() {
-=======
 export function buildAuthHeaders(): Record<string, string> {
->>>>>>> master
   const token = getAuthToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
@@ -119,27 +101,15 @@ export async function fetchCurrentUser(): Promise<AuthUser | null> {
 
   try {
     const response = await axios.get(`${API_BASE_URL}/api/auth/me`, {
-<<<<<<< HEAD
-      headers: authHeaders(),
-      timeout: 10000
-    });
-=======
       headers: buildAuthHeaders(),
       timeout: 10000,
     });
 
->>>>>>> master
     if (response.data?.code !== 200 || !response.data?.data) {
       clearSession();
       return null;
     }
 
-<<<<<<< HEAD
-    const user = {
-      name: String(response.data.data.name || ""),
-      email: String(response.data.data.email || "")
-    };
-=======
     const user: AuthUser = {
       name: String(response.data.data.name || ""),
       email: String(response.data.data.email || ""),
@@ -153,7 +123,6 @@ export async function fetchCurrentUser(): Promise<AuthUser | null> {
       bio: response.data.data.bio ? String(response.data.data.bio) : undefined,
     };
 
->>>>>>> master
     if (isBrowser()) {
       localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
     }
@@ -161,10 +130,6 @@ export async function fetchCurrentUser(): Promise<AuthUser | null> {
   } catch (error) {
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
-<<<<<<< HEAD
-      // ä»…åœ¨æ˜ç¡®é‰´æƒå¤±è´¥æ—¶æ¸…ç†ç™»å½•æ€ï¼Œç½‘ç»œæŠ–åŠ¨æ—¶ä¿ç•™æœ¬åœ°æ€é¿å…è¯¯ä¼¤
-=======
->>>>>>> master
       if (status === 401 || status === 403) {
         clearSession();
         return null;
@@ -179,12 +144,6 @@ export async function logout() {
   const token = getAuthToken();
   if (token) {
     try {
-<<<<<<< HEAD
-      await axios.post(`${API_BASE_URL}/api/auth/logout`, {}, {
-        headers: authHeaders(),
-        timeout: 10000
-      });
-=======
       await axios.post(
         `${API_BASE_URL}/api/auth/logout`,
         {},
@@ -193,7 +152,6 @@ export async function logout() {
           timeout: 10000,
         }
       );
->>>>>>> master
     } catch {
       // ignore network errors on logout, clear local state anyway
     }
@@ -212,27 +170,19 @@ export async function registerUser(input: {
   const password = input.password;
   const verificationCode = input.verificationCode.trim();
 
-  if (!name) return { ok: false, message: "è¯·è¾“å…¥æ˜µç§°" };
-  if (!email) return { ok: false, message: "è¯·è¾“å…¥é‚®ç®±" };
+  if (!name) return { ok: false, message: "ÇëÊäÈëêÇ³Æ" };
+  if (!email) return { ok: false, message: "ÇëÊäÈëÓÊÏä" };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return { ok: false, message: "é‚®ç®±æ ¼å¼ä¸æ­£ç¡®" };
+    return { ok: false, message: "ÓÊÏä¸ñÊ½²»ÕıÈ·" };
   }
   if (password.length < 6) {
-    return { ok: false, message: "å¯†ç è‡³å°‘ 6 ä½" };
+    return { ok: false, message: "ÃÜÂëÖÁÉÙ 6 Î»" };
   }
   if (!verificationCode) {
-    return { ok: false, message: "è¯·è¾“å…¥é‚®ç®±éªŒè¯ç " };
+    return { ok: false, message: "ÇëÊäÈëÓÊÏäÑéÖ¤Âë" };
   }
 
   try {
-<<<<<<< HEAD
-    const response = await axios.post(`${API_BASE_URL}/api/auth/register`, {
-      name,
-      email,
-      password,
-      verification_code: verificationCode
-    }, { timeout: 15000 });
-=======
     const response = await axios.post(
       `${API_BASE_URL}/api/auth/register`,
       {
@@ -244,42 +194,35 @@ export async function registerUser(input: {
       { timeout: 15000 }
     );
 
->>>>>>> master
     if (response.data?.code === 200) return { ok: true };
-    return { ok: false, message: "æ³¨å†Œå¤±è´¥ï¼Œè¯·ç¨åé‡è¯•" };
+    return { ok: false, message: "×¢²áÊ§°Ü£¬ÇëÉÔºóÖØÊÔ" };
   } catch (error) {
     const message = axios.isAxiosError(error)
-      ? String(error.response?.data?.detail || "æ³¨å†Œå¤±è´¥ï¼Œè¯·ç¨åé‡è¯•")
-      : "æ³¨å†Œå¤±è´¥ï¼Œè¯·ç¨åé‡è¯•";
+      ? String(error.response?.data?.detail || "×¢²áÊ§°Ü£¬ÇëÉÔºóÖØÊÔ")
+      : "×¢²áÊ§°Ü£¬ÇëÉÔºóÖØÊÔ";
     return { ok: false, message };
   }
 }
 
 export async function sendRegisterCode(emailInput: string): Promise<{ ok: true } | { ok: false; message: string }> {
   const email = emailInput.trim().toLowerCase();
-  if (!email) return { ok: false, message: "è¯·è¾“å…¥é‚®ç®±" };
+  if (!email) return { ok: false, message: "ÇëÊäÈëÓÊÏä" };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return { ok: false, message: "é‚®ç®±æ ¼å¼ä¸æ­£ç¡®" };
+    return { ok: false, message: "ÓÊÏä¸ñÊ½²»ÕıÈ·" };
   }
 
   try {
-<<<<<<< HEAD
-    const response = await axios.post(`${API_BASE_URL}/api/auth/send-register-code`, {
-      email
-    }, { timeout: 15000 });
-=======
     const response = await axios.post(
       `${API_BASE_URL}/api/auth/send-register-code`,
       { email },
       { timeout: 15000 }
     );
->>>>>>> master
     if (response.data?.code === 200) return { ok: true };
-    return { ok: false, message: "éªŒè¯ç å‘é€å¤±è´¥ï¼Œè¯·ç¨åé‡è¯•" };
+    return { ok: false, message: "ÑéÖ¤Âë·¢ËÍÊ§°Ü£¬ÇëÉÔºóÖØÊÔ" };
   } catch (error) {
     const message = axios.isAxiosError(error)
-      ? String(error.response?.data?.detail || "éªŒè¯ç å‘é€å¤±è´¥ï¼Œè¯·ç¨åé‡è¯•")
-      : "éªŒè¯ç å‘é€å¤±è´¥ï¼Œè¯·ç¨åé‡è¯•";
+      ? String(error.response?.data?.detail || "ÑéÖ¤Âë·¢ËÍÊ§°Ü£¬ÇëÉÔºóÖØÊÔ")
+      : "ÑéÖ¤Âë·¢ËÍÊ§°Ü£¬ÇëÉÔºóÖØÊÔ";
     return { ok: false, message };
   }
 }
@@ -292,16 +235,10 @@ export async function loginUser(input: {
   const password = input.password;
 
   if (!email || !password) {
-    return { ok: false, message: "è¯·è¾“å…¥é‚®ç®±å’Œå¯†ç " };
+    return { ok: false, message: "ÇëÊäÈëÓÊÏäºÍÃÜÂë" };
   }
 
   try {
-<<<<<<< HEAD
-    const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
-      email,
-      password
-    }, { timeout: 15000 });
-=======
     const response = await axios.post(
       `${API_BASE_URL}/api/auth/login`,
       {
@@ -310,18 +247,10 @@ export async function loginUser(input: {
       },
       { timeout: 15000 }
     );
->>>>>>> master
 
     if (response.data?.code !== 200 || !response.data?.data) {
-      return { ok: false, message: "ç™»å½•å¤±è´¥ï¼Œè¯·ç¨åé‡è¯•" };
+      return { ok: false, message: "µÇÂ¼Ê§°Ü£¬ÇëÉÔºóÖØÊÔ" };
     }
-<<<<<<< HEAD
-    const token = String(response.data.data.token || "");
-    const user = {
-      name: String(response.data.data.user?.name || ""),
-      email: String(response.data.data.user?.email || "")
-    };
-=======
 
     const token = String(response.data.data.token || "");
     const user: AuthUser = {
@@ -337,20 +266,17 @@ export async function loginUser(input: {
       bio: response.data.data.user?.bio ? String(response.data.data.user.bio) : undefined,
     };
 
->>>>>>> master
-    if (!token) return { ok: false, message: "ç™»å½•å¤±è´¥ï¼šæœªè·å–åˆ° token" };
+    if (!token) return { ok: false, message: "µÇÂ¼Ê§°Ü£ºÎ´»ñÈ¡µ½ token" };
 
     setSession(user, token);
     return { ok: true, user };
   } catch (error) {
     const message = axios.isAxiosError(error)
-      ? String(error.response?.data?.detail || "ç™»å½•å¤±è´¥ï¼Œè¯·ç¨åé‡è¯•")
-      : "ç™»å½•å¤±è´¥ï¼Œè¯·ç¨åé‡è¯•";
+      ? String(error.response?.data?.detail || "µÇÂ¼Ê§°Ü£¬ÇëÉÔºóÖØÊÔ")
+      : "µÇÂ¼Ê§°Ü£¬ÇëÉÔºóÖØÊÔ";
     return { ok: false, message };
   }
 }
-<<<<<<< HEAD
-=======
 
 export async function updateProfile(input: {
   name?: string;
@@ -380,7 +306,7 @@ export async function updateProfile(input: {
     );
 
     if (response.data?.code !== 200 || !response.data?.data) {
-      return { ok: false, message: "èµ„æ–™æ›´æ–°å¤±è´¥" };
+      return { ok: false, message: "×ÊÁÏ¸üĞÂÊ§°Ü" };
     }
 
     const user: AuthUser = {
@@ -403,16 +329,16 @@ export async function updateProfile(input: {
     return { ok: true, user };
   } catch (error) {
     const message = axios.isAxiosError(error)
-      ? String(error.response?.data?.detail || "èµ„æ–™æ›´æ–°å¤±è´¥")
-      : "èµ„æ–™æ›´æ–°å¤±è´¥";
+      ? String(error.response?.data?.detail || "×ÊÁÏ¸üĞÂÊ§°Ü")
+      : "×ÊÁÏ¸üĞÂÊ§°Ü";
     return { ok: false, message };
   }
 }
 
 export async function uploadAvatar(file: File): Promise<{ ok: true; user: AuthUser } | { ok: false; message: string }> {
-  if (!file) return { ok: false, message: "è¯·é€‰æ‹©å›¾ç‰‡æ–‡ä»¶" };
-  if (!file.type.startsWith("image/")) return { ok: false, message: "ä»…æ”¯æŒå›¾ç‰‡æ–‡ä»¶" };
-  if (file.size > 5 * 1024 * 1024) return { ok: false, message: "å¤´åƒå¤§å°ä¸èƒ½è¶…è¿‡ 5MB" };
+  if (!file) return { ok: false, message: "ÇëÑ¡ÔñÍ¼Æ¬ÎÄ¼ş" };
+  if (!file.type.startsWith("image/")) return { ok: false, message: "½öÖ§³ÖÍ¼Æ¬ÎÄ¼ş" };
+  if (file.size > 5 * 1024 * 1024) return { ok: false, message: "Í·Ïñ´óĞ¡²»ÄÜ³¬¹ı 5MB" };
 
   const formData = new FormData();
   formData.append("avatar", file);
@@ -427,7 +353,7 @@ export async function uploadAvatar(file: File): Promise<{ ok: true; user: AuthUs
     });
 
     if (response.data?.code !== 200 || !response.data?.data) {
-      return { ok: false, message: "å¤´åƒä¸Šä¼ å¤±è´¥" };
+      return { ok: false, message: "Í·ÏñÉÏ´«Ê§°Ü" };
     }
 
     const user: AuthUser = {
@@ -449,8 +375,8 @@ export async function uploadAvatar(file: File): Promise<{ ok: true; user: AuthUs
     return { ok: true, user };
   } catch (error) {
     const message = axios.isAxiosError(error)
-      ? String(error.response?.data?.detail || "å¤´åƒä¸Šä¼ å¤±è´¥")
-      : "å¤´åƒä¸Šä¼ å¤±è´¥";
+      ? String(error.response?.data?.detail || "Í·ÏñÉÏ´«Ê§°Ü")
+      : "Í·ÏñÉÏ´«Ê§°Ü";
     return { ok: false, message };
   }
 }
@@ -463,7 +389,7 @@ export async function fetchMyReports(): Promise<{ ok: true; reports: ReportHisto
     });
 
     if (response.data?.code !== 200 || !Array.isArray(response.data?.data)) {
-      return { ok: false, message: "è·å–å†å²è¯„ä¼°å¤±è´¥" };
+      return { ok: false, message: "»ñÈ¡ÀúÊ·ÆÀ¹ÀÊ§°Ü" };
     }
 
     const reports: ReportHistoryItem[] = response.data.data.map((item: any) => ({
@@ -477,9 +403,8 @@ export async function fetchMyReports(): Promise<{ ok: true; reports: ReportHisto
     return { ok: true, reports };
   } catch (error) {
     const message = axios.isAxiosError(error)
-      ? String(error.response?.data?.detail || "è·å–å†å²è¯„ä¼°å¤±è´¥")
-      : "è·å–å†å²è¯„ä¼°å¤±è´¥";
+      ? String(error.response?.data?.detail || "»ñÈ¡ÀúÊ·ÆÀ¹ÀÊ§°Ü")
+      : "»ñÈ¡ÀúÊ·ÆÀ¹ÀÊ§°Ü";
     return { ok: false, message };
   }
 }
->>>>>>> master

@@ -117,11 +117,16 @@ textarea::placeholder {
 .btn-shine {
   position: relative;
   overflow: hidden;
+<<<<<<< HEAD
+=======
+  transform: translateZ(0);
+>>>>>>> master
 }
 
 .btn-shine::after {
   content: "";
   position: absolute;
+<<<<<<< HEAD
   top: -120%;
   left: -40%;
   width: 42%;
@@ -130,6 +135,29 @@ textarea::placeholder {
   transform: translateX(-180%) rotate(18deg);
   animation: shineSweep 2.2s ease-in-out infinite;
   pointer-events: none;
+=======
+  top: -100%;
+  left: -35%;
+  width: 42%;
+  height: 260%;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.45), transparent);
+  transform: translateX(-220%) rotate(18deg);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.btn-shine:hover::after,
+.btn-shine:focus-visible::after {
+  animation: shineSweep 0.9s cubic-bezier(0.22, 1, 0.36, 1) 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-shine::after,
+  .btn-shine:hover::after,
+  .btn-shine:focus-visible::after {
+    animation: none !important;
+  }
+>>>>>>> master
 }
 
 @keyframes toastIn {
