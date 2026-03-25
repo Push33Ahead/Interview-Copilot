@@ -1,14 +1,9 @@
 import axios from "axios";
-<<<<<<< HEAD
-=======
 import { API_BASE_URL } from "./api";
->>>>>>> master
 
 export interface AuthUser {
   name: string;
   email: string;
-<<<<<<< HEAD
-=======
   avatar_url?: string;
   created_at?: string;
   target_role?: string;
@@ -39,15 +34,10 @@ function parseSkills(value: unknown): string[] {
   if (Array.isArray(value)) return value.map((x) => String(x)).filter((x) => x.trim().length > 0);
   if (typeof value === "string" && value.trim()) return value.split(",").map((x) => x.trim()).filter(Boolean);
   return [];
->>>>>>> master
 }
 
 const CURRENT_USER_KEY = "aii_current_user";
 const AUTH_TOKEN_KEY = "aii_auth_token";
-<<<<<<< HEAD
-const API_BASE_URL = "http://121.41.208.145:8000";
-=======
->>>>>>> master
 
 function isBrowser() {
   return typeof window !== "undefined";
@@ -60,9 +50,6 @@ export function getCurrentUser(): AuthUser | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed?.email || !parsed?.name) return null;
-<<<<<<< HEAD
-    return { name: String(parsed.name), email: String(parsed.email) };
-=======
     return {
       name: String(parsed.name),
       email: String(parsed.email),
@@ -75,7 +62,6 @@ export function getCurrentUser(): AuthUser | null {
       skills: parseSkills(parsed.skills),
       bio: parsed.bio ? String(parsed.bio) : undefined,
     };
->>>>>>> master
   } catch {
     return null;
   }
@@ -90,11 +76,7 @@ export function getAuthToken(): string | null {
   return localStorage.getItem(AUTH_TOKEN_KEY);
 }
 
-<<<<<<< HEAD
-function authHeaders() {
-=======
 export function buildAuthHeaders(): Record<string, string> {
->>>>>>> master
   const token = getAuthToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
@@ -119,27 +101,15 @@ export async function fetchCurrentUser(): Promise<AuthUser | null> {
 
   try {
     const response = await axios.get(`${API_BASE_URL}/api/auth/me`, {
-<<<<<<< HEAD
-      headers: authHeaders(),
-      timeout: 10000
-    });
-=======
       headers: buildAuthHeaders(),
       timeout: 10000,
     });
 
->>>>>>> master
     if (response.data?.code !== 200 || !response.data?.data) {
       clearSession();
       return null;
     }
 
-<<<<<<< HEAD
-    const user = {
-      name: String(response.data.data.name || ""),
-      email: String(response.data.data.email || "")
-    };
-=======
     const user: AuthUser = {
       name: String(response.data.data.name || ""),
       email: String(response.data.data.email || ""),
@@ -153,7 +123,6 @@ export async function fetchCurrentUser(): Promise<AuthUser | null> {
       bio: response.data.data.bio ? String(response.data.data.bio) : undefined,
     };
 
->>>>>>> master
     if (isBrowser()) {
       localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
     }
@@ -161,10 +130,6 @@ export async function fetchCurrentUser(): Promise<AuthUser | null> {
   } catch (error) {
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
-<<<<<<< HEAD
-      // 仅在明确鉴权失败时清理登录态，网络抖动时保留本地态避免误伤
-=======
->>>>>>> master
       if (status === 401 || status === 403) {
         clearSession();
         return null;
@@ -179,12 +144,6 @@ export async function logout() {
   const token = getAuthToken();
   if (token) {
     try {
-<<<<<<< HEAD
-      await axios.post(`${API_BASE_URL}/api/auth/logout`, {}, {
-        headers: authHeaders(),
-        timeout: 10000
-      });
-=======
       await axios.post(
         `${API_BASE_URL}/api/auth/logout`,
         {},
@@ -193,7 +152,6 @@ export async function logout() {
           timeout: 10000,
         }
       );
->>>>>>> master
     } catch {
       // ignore network errors on logout, clear local state anyway
     }
@@ -225,14 +183,6 @@ export async function registerUser(input: {
   }
 
   try {
-<<<<<<< HEAD
-    const response = await axios.post(`${API_BASE_URL}/api/auth/register`, {
-      name,
-      email,
-      password,
-      verification_code: verificationCode
-    }, { timeout: 15000 });
-=======
     const response = await axios.post(
       `${API_BASE_URL}/api/auth/register`,
       {
@@ -244,7 +194,6 @@ export async function registerUser(input: {
       { timeout: 15000 }
     );
 
->>>>>>> master
     if (response.data?.code === 200) return { ok: true };
     return { ok: false, message: "注册失败，请稍后重试" };
   } catch (error) {
@@ -263,17 +212,11 @@ export async function sendRegisterCode(emailInput: string): Promise<{ ok: true }
   }
 
   try {
-<<<<<<< HEAD
-    const response = await axios.post(`${API_BASE_URL}/api/auth/send-register-code`, {
-      email
-    }, { timeout: 15000 });
-=======
     const response = await axios.post(
       `${API_BASE_URL}/api/auth/send-register-code`,
       { email },
       { timeout: 15000 }
     );
->>>>>>> master
     if (response.data?.code === 200) return { ok: true };
     return { ok: false, message: "验证码发送失败，请稍后重试" };
   } catch (error) {
@@ -296,12 +239,6 @@ export async function loginUser(input: {
   }
 
   try {
-<<<<<<< HEAD
-    const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
-      email,
-      password
-    }, { timeout: 15000 });
-=======
     const response = await axios.post(
       `${API_BASE_URL}/api/auth/login`,
       {
@@ -310,18 +247,10 @@ export async function loginUser(input: {
       },
       { timeout: 15000 }
     );
->>>>>>> master
 
     if (response.data?.code !== 200 || !response.data?.data) {
       return { ok: false, message: "登录失败，请稍后重试" };
     }
-<<<<<<< HEAD
-    const token = String(response.data.data.token || "");
-    const user = {
-      name: String(response.data.data.user?.name || ""),
-      email: String(response.data.data.user?.email || "")
-    };
-=======
 
     const token = String(response.data.data.token || "");
     const user: AuthUser = {
@@ -337,7 +266,6 @@ export async function loginUser(input: {
       bio: response.data.data.user?.bio ? String(response.data.data.user.bio) : undefined,
     };
 
->>>>>>> master
     if (!token) return { ok: false, message: "登录失败：未获取到 token" };
 
     setSession(user, token);
@@ -349,8 +277,6 @@ export async function loginUser(input: {
     return { ok: false, message };
   }
 }
-<<<<<<< HEAD
-=======
 
 export async function updateProfile(input: {
   name?: string;
@@ -419,10 +345,7 @@ export async function uploadAvatar(file: File): Promise<{ ok: true; user: AuthUs
 
   try {
     const response = await axios.post(`${API_BASE_URL}/api/auth/avatar`, formData, {
-      headers: {
-        ...buildAuthHeaders(),
-        "Content-Type": "multipart/form-data",
-      },
+      headers: buildAuthHeaders(),
       timeout: 20000,
     });
 
@@ -482,4 +405,19 @@ export async function fetchMyReports(): Promise<{ ok: true; reports: ReportHisto
     return { ok: false, message };
   }
 }
->>>>>>> master
+
+export async function deleteReport(id: string): Promise<{ ok: true } | { ok: false; message: string }> {
+  try {
+    const response = await axios.delete(`${API_BASE_URL}/api/reports/${id}`, {
+      headers: buildAuthHeaders(),
+      timeout: 10000,
+    });
+    if (response.data?.code === 200) {
+      return { ok: true };
+    }
+    return { ok: false, message: "删除失败" };
+  } catch (error) {
+    const detail = axios.isAxiosError(error) ? String(error.response?.data?.detail || "") : "";
+    return { ok: false, message: detail ? `删除失败：${detail}` : "删除失败" };
+  }
+}

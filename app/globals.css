@@ -117,25 +117,12 @@ textarea::placeholder {
 .btn-shine {
   position: relative;
   overflow: hidden;
-<<<<<<< HEAD
-=======
   transform: translateZ(0);
->>>>>>> master
 }
 
 .btn-shine::after {
   content: "";
   position: absolute;
-<<<<<<< HEAD
-  top: -120%;
-  left: -40%;
-  width: 42%;
-  height: 320%;
-  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.45), transparent);
-  transform: translateX(-180%) rotate(18deg);
-  animation: shineSweep 2.2s ease-in-out infinite;
-  pointer-events: none;
-=======
   top: -100%;
   left: -35%;
   width: 42%;
@@ -157,7 +144,6 @@ textarea::placeholder {
   .btn-shine:focus-visible::after {
     animation: none !important;
   }
->>>>>>> master
 }
 
 @keyframes toastIn {
@@ -336,4 +322,31 @@ textarea::placeholder {
 
 .route-reveal {
   animation: routeReveal 0.24s ease-out;
+}
+
+/* Custom V7 Transitions */
+@keyframes v7-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes v7-slide-zoom {
+  from { opacity: 0; transform: translateY(32px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes v7-slide-down {
+  from { opacity: 0; transform: translateY(-16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-v7-fade {
+  opacity: 0;
+  animation: v7-fade-in 0.5s ease-out forwards;
+}
+.animate-v7-modal {
+  opacity: 0;
+  animation: v7-slide-zoom 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.animate-v7-toast {
+  opacity: 0;
+  animation: v7-slide-down 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

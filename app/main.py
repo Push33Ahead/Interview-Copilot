@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 import fitz  # PyMuPDF
-=======
-﻿import fitz  # PyMuPDF
->>>>>>> master
 import json
 import uuid
 import re
@@ -13,18 +9,12 @@ import os
 import smtplib
 import ssl
 import random
-<<<<<<< HEAD
-from typing import Any, Dict, List
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Header
-from fastapi.middleware.cors import CORSMiddleware
-=======
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
->>>>>>> master
 from pydantic import BaseModel
 from openai import OpenAI
 from email.message import EmailMessage
@@ -32,11 +22,6 @@ from email.message import EmailMessage
 # ================= 1. 初始化服务与配置 =================
 app = FastAPI(title="AI Interview API")
 
-<<<<<<< HEAD
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-=======
 UPLOAD_BASE_DIR = Path(os.getenv("UPLOAD_BASE_DIR", "uploads"))
 AVATAR_DIR = UPLOAD_BASE_DIR / "avatars"
 AVATAR_DIR.mkdir(parents=True, exist_ok=True)
@@ -55,17 +40,13 @@ def parse_cors_origins() -> List[str]:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=parse_cors_origins(),
->>>>>>> master
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-<<<<<<< HEAD
-=======
 app.mount("/uploads", StaticFiles(directory=str(UPLOAD_BASE_DIR)), name="uploads")
 
->>>>>>> master
 redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
 AUTH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 7  # 7 天
 REGISTER_CODE_TTL_SECONDS = 300  # 5 分钟
@@ -191,11 +172,7 @@ def normalize_report(data: Dict[str, Any]) -> Dict[str, Any]:
 def robust_json_parse(raw_text, messages):
     """带重试的JSON解析"""
     last_error = "未知错误"
-<<<<<<< HEAD
-    for i in range(3):  # 最多重试2次
-=======
     for i in range(3):  # 最多重试 3 次
->>>>>>> master
         try:
             cleaned = extract_json(raw_text)
             data = safe_json_load(cleaned)
@@ -227,25 +204,13 @@ def build_evaluate_prompt(session: Dict[str, Any]) -> str:
     chat_str = json.dumps(dialog, ensure_ascii=False)
 
     return f"""
-<<<<<<< HEAD
-你不是聊天助手，你是一个API。
-必须返回严格JSON，不允许任何解释。
-不要输出Markdown，不要输出代码块。
-
-=======
 你不是聊天助手，你是一个 API。必须返回严格 JSON，不允许任何解释。不要输出 Markdown，不要输出代码块。
->>>>>>> master
 岗位: {session.get('job_title', '')}
 需求: {(session.get('job_description') or '')[:3000]}
 简历: {resume_text}
 对话: {chat_str}
 
-<<<<<<< HEAD
-返回结构：
-{{
-=======
 返回结构：{{
->>>>>>> master
  "score": 80,
  "overall_summary": "",
  "answer_improvements":[
@@ -283,8 +248,6 @@ class LoginRequest(BaseModel):
 class SendRegisterCodeRequest(BaseModel):
     email: str
 
-<<<<<<< HEAD
-=======
 class UpdateProfileRequest(BaseModel):
     name: Optional[str] = None
     target_role: Optional[str] = None
@@ -294,7 +257,6 @@ class UpdateProfileRequest(BaseModel):
     skills: Optional[List[str]] = None
     bio: Optional[str] = None
 
->>>>>>> master
 
 def normalize_email(email: str) -> str:
     return (email or "").strip().lower()
@@ -323,8 +285,6 @@ def make_register_code_key(email: str) -> str:
 def make_register_cooldown_key(email: str) -> str:
     return f"register_cooldown:{normalize_email(email)}"
 
-<<<<<<< HEAD
-=======
 def make_user_reports_key(email: str) -> str:
     return f"user_reports:{normalize_email(email)}"
 
@@ -356,7 +316,6 @@ def sanitize_user_profile(user_data: Dict[str, Any]) -> Dict[str, Any]:
         "bio": str(user_data.get("bio", "") or ""),
     }
 
->>>>>>> master
 
 def generate_verification_code() -> str:
     return f"{random.randint(0, 999999):06d}"
@@ -384,11 +343,7 @@ def get_smtp_config() -> Dict[str, Any]:
 def send_register_code_email(receiver_email: str, code: str):
     cfg = get_smtp_config()
     msg = EmailMessage()
-<<<<<<< HEAD
-    msg["Subject"] = "Interview Copilot注册验证码"
-=======
     msg["Subject"] = "Interview Copilot 注册验证码"
->>>>>>> master
     msg["From"] = cfg["sender"]
     msg["To"] = receiver_email
     msg.set_content(
@@ -441,8 +396,6 @@ def get_current_user_from_auth_header(authorization: str) -> Dict[str, Any]:
     return {
         "email": user_data.get("email", ""),
         "name": user_data.get("name", ""),
-<<<<<<< HEAD
-=======
         "avatar_url": user_data.get("avatar_url", ""),
         "created_at": user_data.get("created_at", ""),
         "target_role": user_data.get("target_role", ""),
@@ -451,7 +404,6 @@ def get_current_user_from_auth_header(authorization: str) -> Dict[str, Any]:
         "expected_salary": user_data.get("expected_salary", ""),
         "skills": user_data.get("skills", []),
         "bio": user_data.get("bio", ""),
->>>>>>> master
         "token": token
     }
 
@@ -521,9 +473,6 @@ async def auth_register(request: RegisterRequest):
     user_data = {
         "name": name,
         "email": email,
-<<<<<<< HEAD
-        "password_hash": hash_password(password)
-=======
         "password_hash": hash_password(password),
         "avatar_url": "",
         "created_at": now_iso(),
@@ -533,7 +482,6 @@ async def auth_register(request: RegisterRequest):
         "expected_salary": "",
         "skills": [],
         "bio": ""
->>>>>>> master
     }
     redis_client.set(user_key, json.dumps(user_data, ensure_ascii=False))
     redis_client.delete(make_register_code_key(email))
@@ -543,9 +491,6 @@ async def auth_register(request: RegisterRequest):
         "code": 200,
         "data": {
             "name": name,
-<<<<<<< HEAD
-            "email": email
-=======
             "email": email,
             "avatar_url": "",
             "created_at": user_data["created_at"],
@@ -555,7 +500,6 @@ async def auth_register(request: RegisterRequest):
             "expected_salary": "",
             "skills": [],
             "bio": ""
->>>>>>> master
         }
     }
 
@@ -576,13 +520,10 @@ async def auth_login(request: LoginRequest):
     if not verify_password(password, user_data.get("password_hash", "")):
         raise HTTPException(status_code=401, detail="邮箱或密码错误")
 
-<<<<<<< HEAD
-=======
     if not user_data.get("created_at"):
         user_data["created_at"] = now_iso()
         redis_client.set(make_user_key(email), json.dumps(user_data, ensure_ascii=False))
 
->>>>>>> master
     token = str(uuid.uuid4())
     auth_key = make_auth_key(token)
     redis_client.setex(auth_key, AUTH_TOKEN_TTL_SECONDS, email)
@@ -593,9 +534,6 @@ async def auth_login(request: LoginRequest):
             "token": token,
             "user": {
                 "name": user_data.get("name", ""),
-<<<<<<< HEAD
-                "email": user_data.get("email", "")
-=======
                 "email": user_data.get("email", ""),
                 "avatar_url": user_data.get("avatar_url", ""),
                 "created_at": user_data.get("created_at", ""),
@@ -605,7 +543,6 @@ async def auth_login(request: LoginRequest):
                 "expected_salary": user_data.get("expected_salary", ""),
                 "skills": user_data.get("skills", []),
                 "bio": user_data.get("bio", "")
->>>>>>> master
             }
         }
     }
@@ -616,14 +553,7 @@ async def auth_me(authorization: str = Header(None)):
     user = get_current_user_from_auth_header(authorization)
     return {
         "code": 200,
-<<<<<<< HEAD
-        "data": {
-            "name": user["name"],
-            "email": user["email"]
-        }
-=======
         "data": sanitize_user_profile(user)
->>>>>>> master
     }
 
 
@@ -636,8 +566,6 @@ async def auth_logout(authorization: str = Header(None)):
         "data": True
     }
 
-<<<<<<< HEAD
-=======
 
 @app.put("/api/auth/profile")
 async def auth_update_profile(request: UpdateProfileRequest, authorization: str = Header(None)):
@@ -791,21 +719,42 @@ async def get_report_detail(report_id: str, authorization: str = Header(None)):
         "data": report_data
     }
 
->>>>>>> master
+@app.delete("/api/reports/{report_id}")
+async def delete_report(report_id: str, authorization: str = Header(None)):
+    user = get_current_user_from_auth_header(authorization)
+    user_reports_key = make_user_reports_key(user["email"])
+    reports_raw = redis_client.lrange(user_reports_key, 0, 200)
+    
+    target_item = None
+    for item in reports_raw:
+        try:
+            parsed = json.loads(item)
+            if str(parsed.get("id", "")) == report_id:
+                target_item = item
+                break
+        except Exception:
+            continue
+            
+    if not target_item:
+        raise HTTPException(status_code=404, detail="评估记录不存在或无权删除")
+        
+    redis_client.lrem(user_reports_key, 1, target_item)
+    redis_client.delete(make_report_detail_key(report_id))
+    
+    return {
+        "code": 200,
+        "data": True
+    }
+
 @app.post("/api/init-interview")
 async def init_interview(
     job_title: str = Form(...),
     job_description: str = Form(...),
-<<<<<<< HEAD
-    resume: UploadFile = File(...)
-):
-=======
     resume: UploadFile = File(...),
     authorization: str = Header(None)
 ):
     user = get_current_user_from_auth_header(authorization)
 
->>>>>>> master
     if not resume.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="只接受PDF")
 
@@ -820,24 +769,13 @@ async def init_interview(
 
     system_prompt = f"""
 你是资深{job_title}面试官。
-<<<<<<< HEAD
-
-=======
->>>>>>> master
 岗位需求:
 {job_description}
 
 候选人简历:
 {resume_text}
 
-<<<<<<< HEAD
-规则：
-1. 每次只问一个问题
-2. 紧扣技能和简历
-3. 不说废话
-=======
 规则：1. 每次只问一个问题 2. 紧扣技能和简历 3. 不说废话
->>>>>>> master
 """
 
     messages = [
@@ -850,10 +788,7 @@ async def init_interview(
 
     session_id = str(uuid.uuid4())
     session_data = {
-<<<<<<< HEAD
-=======
         "owner_email": user["email"],
->>>>>>> master
         "job_title": job_title,
         "job_description": job_description,
         "resume_text": resume_text,
@@ -873,12 +808,8 @@ async def init_interview(
 
 
 @app.post("/api/chat")
-<<<<<<< HEAD
-async def chat(request: ChatRequest):
-=======
 async def chat(request: ChatRequest, authorization: str = Header(None)):
     user = get_current_user_from_auth_header(authorization)
->>>>>>> master
     key = f"session:{request.session_id}"
     data_str = redis_client.get(key)
 
@@ -886,14 +817,11 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
         raise HTTPException(404, "session不存在")
 
     session = json.loads(data_str)
-<<<<<<< HEAD
-=======
     owner_email = session.get("owner_email", "")
     if owner_email and owner_email != user["email"]:
         raise HTTPException(status_code=403, detail="无权访问该面试会话")
     if not owner_email:
         session["owner_email"] = user["email"]
->>>>>>> master
 
     session["messages"].append({"role": "user", "content": request.user_answer})
 
@@ -923,12 +851,8 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
 
 
 @app.post("/api/evaluate")
-<<<<<<< HEAD
-async def evaluate(request: EvaluateRequest):
-=======
 async def evaluate(request: EvaluateRequest, authorization: str = Header(None)):
     user = get_current_user_from_auth_header(authorization)
->>>>>>> master
     key = f"session:{request.session_id}"
     data_str = redis_client.get(key)
 
@@ -936,15 +860,12 @@ async def evaluate(request: EvaluateRequest, authorization: str = Header(None)):
         raise HTTPException(404, "session不存在")
 
     session = json.loads(data_str)
-<<<<<<< HEAD
-=======
     owner_email = session.get("owner_email", "")
     if owner_email and owner_email != user["email"]:
         raise HTTPException(status_code=403, detail="无权访问该面试会话")
     if not owner_email:
         session["owner_email"] = user["email"]
         redis_client.setex(key, 7200, json.dumps(session, ensure_ascii=False))
->>>>>>> master
 
     eval_prompt = build_evaluate_prompt(session)
 
@@ -953,13 +874,6 @@ async def evaluate(request: EvaluateRequest, authorization: str = Header(None)):
 
     print("原始返回:", raw)
 
-<<<<<<< HEAD
-    report = robust_json_parse(raw, messages)
-
-    return {
-        "code": 200,
-        "data": report
-=======
     try:
         report = robust_json_parse(raw, messages)
     except HTTPException as e:
@@ -1000,5 +914,4 @@ async def evaluate(request: EvaluateRequest, authorization: str = Header(None)):
         "debug": {
             "raw_model_output": str(raw)[:8000]
         }
->>>>>>> master
     }

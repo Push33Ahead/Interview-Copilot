@@ -1,761 +1,188 @@
-<<<<<<< HEAD
 "use client";
-import { useEffect, useMemo, useState } from "react";
-import type { CSSProperties } from "react";
-import { useRouter } from "next/navigation";
-import {
-  UploadCloud,
-  Briefcase,
-  FileText,
-  LogOut,
-  Loader2,
-  UserRound,
-  CheckCircle2,
-  Info,
-  ShieldCheck,
-  Sparkles,
-  BarChart3
-} from "lucide-react";
-import axios from "axios";
-import { AuthUser, fetchCurrentUser, loginUser, logout, registerUser, sendRegisterCode } from "./lib/auth";
 
-const API_BASE_URL = "http://121.41.208.145:8000";
-
-type AuthMode = "login" | "register";
-type TopNotice = { id: number; text: string; type: "success" | "info" } | null;
-type SuccessModal = { open: boolean; message: string };
-
-export default function Home() {
-  const router = useRouter();
-  const [jobTitle, setJobTitle] = useState("");
-  const [jobDescription, setJobDescription] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
-  const [authChecked, setAuthChecked] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authMode, setAuthMode] = useState<AuthMode>("login");
-  const [authSubmitting, setAuthSubmitting] = useState(false);
-  const [pendingStart, setPendingStart] = useState(false);
-
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [registerName, setRegisterName] = useState("");
-  const [registerEmail, setRegisterEmail] = useState("");
-  const [registerPassword, setRegisterPassword] = useState("");
-  const [registerConfirmPassword, setRegisterConfirmPassword] = useState("");
-  const [registerVerificationCode, setRegisterVerificationCode] = useState("");
-  const [sendingCode, setSendingCode] = useState(false);
-  const [countdown, setCountdown] = useState(0);
-  const [authError, setAuthError] = useState("");
-  const [authSuccess, setAuthSuccess] = useState("");
-  const [formError, setFormError] = useState("");
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [topNotice, setTopNotice] = useState<TopNotice>(null);
-  const [successModal, setSuccessModal] = useState<SuccessModal>({ open: false, message: "" });
-
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      const user = await fetchCurrentUser();
-      if (!active) return;
-      setCurrentUser(user);
-      setAuthChecked(true);
-
-      if (typeof window !== "undefined") {
-        const flashRaw = sessionStorage.getItem("auth_flash_notice");
-        if (flashRaw) {
-          try {
-            const flash = JSON.parse(flashRaw) as { text?: string; type?: "success" | "info" };
-            if (flash?.text) {
-              if ((flash.type || "success") === "success") {
-                showSuccessModal(flash.text, 1600);
-              } else {
-                showTopNotice(flash.text, "info", 1600);
-              }
-            }
-          } catch {
-            showSuccessModal("登录成功", 1600);
-          }
-          sessionStorage.removeItem("auth_flash_notice");
-        }
-      }
-    })();
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (countdown <= 0) return;
-    const timer = setInterval(() => setCountdown((prev) => (prev <= 1 ? 0 : prev - 1)), 1000);
-    return () => clearInterval(timer);
-  }, [countdown]);
-
-  const isFormValid = useMemo(() => {
-    return !!jobTitle.trim() && !!jobDescription.trim() && !!file;
-  }, [jobTitle, jobDescription, file]);
-
-  const openAuthModal = (mode: AuthMode) => {
-    setAuthMode(mode);
-    setAuthError("");
-    setAuthSuccess("");
-    setShowAuthModal(true);
-  };
-
-  const closeAuthModal = () => {
-    if (authSubmitting) return;
-    setShowAuthModal(false);
-  };
-
-  const showTopNotice = (text: string, type: "success" | "info" = "info", duration = 1600) => {
-    const id = Date.now();
-    setTopNotice({ id, text, type });
-    setTimeout(() => {
-      setTopNotice((prev) => (prev && prev.id === id ? null : prev));
-    }, duration);
-  };
-
-  const showSuccessModal = (message: string, duration = 1500) => {
-    setSuccessModal({ open: true, message });
-    setTimeout(() => {
-      setSuccessModal((prev) => (prev.open ? { open: false, message: "" } : prev));
-    }, duration);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-      if (selectedFile.type !== "application/pdf") {
-        setFormError("仅支持上传 PDF 格式的简历");
-        return;
-      }
-      setFile(selectedFile);
-      setFormError("");
-    }
-  };
-
-  const startInterview = async () => {
-    setFormError("");
-    if (!isFormValid) {
-      setFormError("请填写完整信息并上传简历");
-      return;
-    }
-
-    setLoading(true);
-    const formData = new FormData();
-    formData.append("job_title", jobTitle);
-    formData.append("job_description", jobDescription);
-    formData.append("resume", file as File);
-
-    try {
-      const response = await axios.post(`${API_BASE_URL}/api/init-interview`, formData, {
-        headers: { "Content-Type": "multipart/form-data" }
-      });
-
-      if (response.data.code === 200) {
-        const { session_id, first_question } = response.data.data;
-        localStorage.setItem("interview_session_id", session_id);
-        localStorage.setItem("first_question", first_question);
-        router.push("/chat");
-        return;
-      }
-      const msg = response.data?.message || response.data?.detail || "服务暂时不可用";
-      setFormError("初始化失败: " + msg);
-    } catch (error) {
-      console.error(error);
-      if (axios.isAxiosError(error)) {
-        const detail = error.response?.data?.detail || error.response?.data?.message || error.message;
-        setFormError(`初始化失败: ${detail}`);
-      } else {
-        setFormError("请求服务器失败，请检查服务器是否启动、8000端口是否放行");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError("");
-
-    if (!isFormValid) {
-      setFormError("请填写完整信息并上传简历");
-      return;
-    }
-
-    if (!currentUser) {
-      setPendingStart(true);
-      openAuthModal("login");
-      return;
-    }
-
-    await startInterview();
-  };
-
-  const handleLogout = async () => {
-    if (isLoggingOut) return;
-    setIsLoggingOut(true);
-    showTopNotice("正在退出登录...", "info", 1300);
-    await logout();
-    showSuccessModal("已退出登录", 1500);
-    setCurrentUser(null);
-    setIsLoggingOut(false);
-  };
-
-  const submitLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (authSubmitting) return;
-    setAuthError("");
-    setAuthSuccess("");
-
-    setAuthSubmitting(true);
-    const result = await loginUser({
-      email: loginEmail,
-      password: loginPassword
-    });
-    setAuthSubmitting(false);
-
-    if (!result.ok) {
-      setAuthError(result.message);
-      return;
-    }
-
-    setAuthSuccess("登录成功");
-    showSuccessModal(`登录成功，欢迎回来，${result.user.name}`, pendingStart ? 900 : 1600);
-    setCurrentUser(result.user);
-    setShowAuthModal(false);
-    if (pendingStart) {
-      showTopNotice("登录成功，正在初始化面试...", "info", 1200);
-      setPendingStart(false);
-      await new Promise((resolve) => setTimeout(resolve, 700));
-      await startInterview();
-    }
-  };
-
-  const submitRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (authSubmitting) return;
-    setAuthError("");
-    setAuthSuccess("");
-
-    if (registerPassword !== registerConfirmPassword) {
-      setAuthError("两次密码输入不一致");
-      return;
-    }
-    if (!registerName.trim()) {
-      setAuthError("请输入昵称");
-      return;
-    }
-    if (!registerVerificationCode.trim()) {
-      setAuthError("请输入邮箱验证码");
-      return;
-    }
-
-    setAuthSubmitting(true);
-    const result = await registerUser({
-      name: registerName,
-      email: registerEmail,
-      password: registerPassword,
-      verificationCode: registerVerificationCode
-    });
-    setAuthSubmitting(false);
-
-    if (!result.ok) {
-      setAuthError(result.message);
-      return;
-    }
-
-    setAuthSuccess("注册成功，请登录");
-    setAuthMode("login");
-    setLoginEmail(registerEmail);
-    setLoginPassword("");
-  };
-
-  const onSendRegisterCode = async () => {
-    if (sendingCode || countdown > 0) return;
-    setAuthError("");
-    setAuthSuccess("");
-    if (!registerEmail.trim()) {
-      setAuthError("请先输入邮箱");
-      return;
-    }
-    setSendingCode(true);
-    const result = await sendRegisterCode(registerEmail);
-    setSendingCode(false);
-    if (!result.ok) {
-      setAuthError(result.message);
-      return;
-    }
-    setCountdown(60);
-    setAuthSuccess("验证码已发送，请检查邮箱");
-  };
-
-  if (!authChecked) {
-    return (
-      <main className="min-h-screen flex items-center justify-center text-slate-500">
-        正在加载首页...
-      </main>
-    );
-  }
-
-  return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_#e0f2fe_0,_#f8fafc_35%,_#f8fafc_100%)] text-slate-900">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="anim-float absolute -top-20 -left-20 h-72 w-72 rounded-full bg-cyan-200/30 blur-3xl" />
-        <div style={{ "--d": "900ms" } as CSSProperties} className="anim-float absolute top-24 right-0 h-72 w-72 rounded-full bg-sky-200/30 blur-3xl" />
-      </div>
-
-      <header className="sticky top-0 z-30 backdrop-blur bg-white/70 border-b border-slate-200/70 anim-fade-up">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="font-semibold tracking-tight text-slate-900">Interview Copilot</div>
-          <div className="flex items-center gap-2">
-            {currentUser ? (
-              <>
-                <div className="hidden sm:flex items-center gap-2 text-sm text-slate-700 px-3 py-2 rounded-lg bg-white border border-slate-200">
-                  <UserRound size={16} />
-                  <span>{currentUser.name}</span>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  disabled={isLoggingOut}
-                  className="px-3 py-2 rounded-lg text-sm border border-slate-300 hover:bg-slate-100 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-1 min-w-[88px] justify-center"
-                >
-                  {isLoggingOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
-                  {isLoggingOut ? "退出中..." : "退出"}
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => openAuthModal("login")}
-                  className="px-3 py-2 rounded-lg text-sm border border-slate-300 hover:bg-slate-100"
-                >
-                  登录
-                </button>
-                <button
-                  onClick={() => openAuthModal("register")}
-                  className="px-3 py-2 rounded-lg text-sm bg-slate-900 text-white hover:bg-slate-800"
-                >
-                  注册
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-        {topNotice && (
-          <div className="max-w-6xl mx-auto px-4 pb-3">
-            <div
-              key={topNotice.id}
-              className={`rounded-lg border px-3 py-2 text-sm flex items-center gap-2 ${
-                topNotice.type === "success"
-                  ? "toast-success bg-emerald-50 text-emerald-700 border-emerald-200"
-                  : "toast-animated bg-sky-50 text-sky-700 border-sky-200"
-              }`}
-            >
-              <span className="toast-icon-pop">
-                {topNotice.type === "success" ? <CheckCircle2 size={16} /> : <Info size={16} />}
-              </span>
-              <span>{topNotice.text}</span>
-            </div>
-          </div>
-        )}
-      </header>
-
-      <section className="relative z-10 max-w-6xl mx-auto px-4 pt-16 pb-10">
-        <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-8 items-start">
-          <div>
-            <div style={{ "--d": "80ms" } as CSSProperties} className="anim-fade-up inline-flex items-center gap-2 rounded-full bg-cyan-100 text-cyan-800 px-3 py-1 text-sm">
-              <Sparkles size={16} />
-              模拟真实技术面流程
-            </div>
-            <h1 style={{ "--d": "160ms" } as CSSProperties} className="anim-fade-up mt-5 text-4xl lg:text-5xl font-bold leading-tight text-slate-900">
-              用一场可复盘的
-              <span className="text-cyan-700"> AI 模拟面试</span>
-              ，提前发现短板
-            </h1>
-            <p style={{ "--d": "260ms" } as CSSProperties} className="anim-fade-up mt-5 text-slate-600 max-w-2xl text-lg">
-              上传简历、填写岗位 JD，系统自动发起多轮追问并生成结构化评估报告。
-            </p>
-            <div style={{ "--d": "340ms" } as CSSProperties} className="anim-fade-up mt-8 grid sm:grid-cols-3 gap-3">
-              <div className="anim-float rounded-xl bg-white border border-slate-200 p-4 transition duration-300 hover:-translate-y-1.5 hover:shadow-lg">
-                <ShieldCheck size={18} className="text-cyan-700" />
-                <p className="mt-2 text-sm font-medium">实时追问</p>
-                <p className="text-xs text-slate-500 mt-1">按你的回答动态追问</p>
-              </div>
-              <div style={{ "--d": "600ms" } as CSSProperties} className="anim-float rounded-xl bg-white border border-slate-200 p-4 transition duration-300 hover:-translate-y-1.5 hover:shadow-lg">
-                <BarChart3 size={18} className="text-cyan-700" />
-                <p className="mt-2 text-sm font-medium">评分报告</p>
-                <p className="text-xs text-slate-500 mt-1">输出可执行优化建议</p>
-              </div>
-              <div style={{ "--d": "1200ms" } as CSSProperties} className="anim-float rounded-xl bg-white border border-slate-200 p-4 transition duration-300 hover:-translate-y-1.5 hover:shadow-lg">
-                <Sparkles size={18} className="text-cyan-700" />
-                <p className="mt-2 text-sm font-medium">快速准备</p>
-                <p className="text-xs text-slate-500 mt-1">10 分钟完成一次演练</p>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ "--d": "220ms" } as CSSProperties} className="anim-fade-up bg-white rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/60 p-6 transition duration-300 hover:-translate-y-1 hover:shadow-2xl">
-            <h2 className="text-2xl font-bold text-slate-900">开始模拟面试</h2>
-            <p className="text-slate-500 mt-2 mb-6">填写岗位信息并上传 PDF 简历</p>
-            {formError && <p className="mb-4 text-sm rounded-lg bg-red-50 text-red-700 border border-red-200 px-3 py-2">{formError}</p>}
-
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
-                  <Briefcase size={18} /> 面试岗位
-                </label>
-                <input
-                  type="text"
-                  placeholder="例如：前端开发工程师"
-                  className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:outline-none transition"
-                  value={jobTitle}
-                  onChange={(e) => setJobTitle(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
-                  <FileText size={18} /> 岗位需求 (JD)
-                </label>
-                <textarea
-                  rows={4}
-                  placeholder="请粘贴岗位职责和技能要求..."
-                  className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:outline-none transition resize-none"
-                  value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">上传简历 (.pdf)</label>
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:bg-slate-50 transition bg-slate-50/70">
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <UploadCloud className="w-10 h-10 text-slate-400 mb-3" />
-                    <p className="text-sm text-slate-600">
-                      {file ? <span className="text-cyan-700 font-semibold">{file.name}</span> : "点击或拖拽上传 PDF 简历"}
-                    </p>
-                  </div>
-                  <input type="file" className="hidden" accept=".pdf" onChange={handleFileChange} />
-                </label>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="btn-shine w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-3 px-4 rounded-xl transition duration-200"
-              >
-                {loading ? "正在解析简历并初始化面试..." : "开始模拟面试"}
-              </button>
-
-              {!currentUser && (
-                <p className="text-xs text-slate-500">
-                  提交后会先弹出登录/注册框，验证成功后自动继续。
-                </p>
-              )}
-            </form>
-=======
-﻿import type { CSSProperties } from "react";
 import Link from "next/link";
-import { ArrowRight, Radar, ShieldCheck, Sparkles, Workflow, FileBadge2, LineChart, MessageSquareText } from "lucide-react";
-
-const quickStats = [
-  { value: "15", label: "最多追问轮数" },
-  { value: "10min", label: "一次完整模拟" },
-  { value: "4", label: "维度评估输出" },
-];
-
-const pillars = [
-  {
-    icon: MessageSquareText,
-    title: "动态追问",
-    desc: "根据你的每轮回答实时追问，避免固定题库的套路化练习。",
-  },
-  {
-    icon: LineChart,
-    title: "结构化反馈",
-    desc: "给出评分、薄弱点拆解和可执行改进建议，不只给一句评价。",
-  },
-  {
-    icon: FileBadge2,
-    title: "简历联动",
-    desc: "结合岗位 JD 与简历内容评估回答贴合度，提前暴露风险项。",
-  },
-];
-
-const flow = [
-  { step: "01", title: "上传简历", text: "提交 PDF 简历并填写岗位 JD。" },
-  { step: "02", title: "开始模拟", text: "AI 面试官进入多轮技术追问。" },
-  { step: "03", title: "查看报告", text: "生成可复盘的评估和优化建议。" },
-];
+import { ArrowRight, Radar, CheckCircle2, Info } from "lucide-react";
+import { useState, useEffect } from "react";
+import AuthModal from "@/app/components/AuthModal";
+import { fetchCurrentUser, AuthUser } from "@/app/lib/auth";
 
 export default function HomePage() {
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [toast, setToast] = useState<{ text: string, type: "success" | "info" } | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    fetchCurrentUser().then(setUser);
+    
+    const handleToast = (e: any) => {
+       setToast(e.detail);
+       setTimeout(() => setToast(null), 3000);
+    };
+    
+    // Listen to success directly from auth modal embedded globally or here
+    const handleAuthSuccess = (e: any) => {
+       if (e.detail?.name) setUser(e.detail);
+    };
+    window.addEventListener("auth-success", handleAuthSuccess);
+    window.addEventListener("show-toast", handleToast);
+    return () => {
+       window.removeEventListener("show-toast", handleToast);
+       window.removeEventListener("auth-success", handleAuthSuccess);
+    }
+  }, []);
+
   return (
-    <main className="min-h-screen bg-[#f3f4f6] text-slate-900 overflow-x-hidden">
-      <div className="pointer-events-none fixed inset-0 -z-10">
-        <div className="absolute -top-24 left-1/2 h-[34rem] w-[34rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,_rgba(120,143,255,0.24)_0%,_rgba(120,143,255,0)_64%)]" />
-        <div style={{ "--d": "600ms" } as CSSProperties} className="anim-float absolute right-[-10rem] top-[18rem] h-[28rem] w-[28rem] rounded-full bg-[radial-gradient(circle,_rgba(56,189,248,0.20)_0%,_rgba(56,189,248,0)_68%)]" />
-      </div>
-
-      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/75 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
-          <div className="flex items-center gap-2 text-sm font-medium tracking-wide text-slate-800">
-            <Radar size={16} className="text-sky-600" />
-            Interview Copilot
+    <main className="min-h-screen bg-black text-white selection:bg-white/30 font-sans animate-v7-fade">
+      {/* Global Toast */}
+      {toast && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[200] w-full max-w-sm px-5 animate-v7-toast">
+          <div className="flex items-center justify-center gap-2 rounded-full bg-white px-5 py-3.5 text-sm shadow-2xl text-black">
+            {toast.type === "success" ? <CheckCircle2 size={18} className="text-emerald-500" /> : <Info size={18} className="text-sky-500" />}
+            {toast.text}
           </div>
-          <Link href="/start" className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700">
-            开始模拟
-            <ArrowRight size={15} />
-          </Link>
         </div>
-      </header>
-
-      <section className="mx-auto grid max-w-6xl items-center gap-12 px-5 pb-20 pt-16 lg:grid-cols-[1.1fr_0.9fr]">
-        <div>
-          <div style={{ "--d": "120ms" } as CSSProperties} className="anim-fade-up inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-700">
-            <Sparkles size={14} className="text-sky-600" />
-            Interview Training Platform
+      )}
+      <nav className="fixed top-0 w-full z-50 bg-black/50 backdrop-blur-xl border-b border-white/10">
+        <div className="mx-auto max-w-7xl px-6 h-14 flex items-center justify-between text-sm font-medium">
+          <div className="flex items-center gap-2 tracking-widest text-white/90">
+            <Radar size={16} />
+            INTERVIEW COPILOT
           </div>
+          {user ? (
+            <div className="flex items-center gap-4">
+              <span className="text-white/80 text-sm font-light hidden sm:inline-block">你好，{user.name}</span>
+              <Link href="/start" className="text-white/80 transition hover:text-white font-medium flex items-center gap-1.5 bg-white/10 px-4 py-1.5 rounded-full hover:bg-white/20">
+                 进入控制台 <ArrowRight size={14} />
+              </Link>
+            </div>
+          ) : (
+            <button onClick={() => setIsAuthOpen(true)} className="text-white/80 transition hover:text-white">
+              登录 / 注册
+            </button>
+          )}
+        </div>
+      </nav>
 
-          <h1 style={{ "--d": "200ms" } as CSSProperties} className="anim-fade-up mt-6 text-4xl font-semibold leading-tight sm:text-6xl">
-            把每次模拟面试，
-            <br />
-            做成可进化的能力系统。
+      {/* Hero Section */}
+      <section className="relative h-screen flex flex-col items-center justify-center pt-14 overflow-hidden">
+        {/* Subtle Ambient Glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] opacity-20 bg-[radial-gradient(circle,rgba(255,255,255,0.8)_0%,transparent_50%)] pointer-events-none blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] opacity-30 bg-[radial-gradient(circle,rgba(110,231,183,1)_0%,transparent_60%)] pointer-events-none blur-[100px] mix-blend-screen"></div>
+
+        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto flex flex-col items-center">
+          <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-bold tracking-tight text-white mb-6 leading-[1.1] anim-fade-up">
+            重新定义技术面试。
           </h1>
-
-          <p style={{ "--d": "280ms" } as CSSProperties} className="anim-fade-up mt-6 max-w-xl text-base text-slate-600 sm:text-lg">
-            Interview Copilot 用真实面试节奏训练表达、深挖技术细节，并输出结构化复盘报告，
-            让你在真正面试前，先完成一次高质量预演。
+          <p className="text-xl md:text-2xl text-white/60 font-light max-w-2xl mb-12 anim-fade-up" style={{ animationDelay: '100ms' }}>
+            更聪明的 AI，呈现更真实的场景。不仅是练习，更是进化。
           </p>
-
-          <div style={{ "--d": "360ms" } as CSSProperties} className="anim-fade-up mt-8 flex flex-wrap items-center gap-3">
-            <Link href="/start" className="btn-shine inline-flex items-center gap-2 rounded-full bg-slate-900 px-6 py-3 text-sm font-medium text-white transition hover:bg-slate-700">
-              进入模拟入口
-              <ArrowRight size={15} />
-            </Link>
-            <a href="#how-it-works" className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100">
-              了解流程
-            </a>
-          </div>
-        </div>
-
-        <div style={{ "--d": "260ms" } as CSSProperties} className="anim-fade-up relative">
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.14)]">
-            <div className="rounded-2xl bg-gradient-to-b from-slate-900 to-slate-700 p-5 text-white">
-              <p className="text-xs text-slate-300">Live Interview Session</p>
-              <p className="mt-2 text-lg font-medium">后端工程师 · 深度追问模式</p>
-              <div className="mt-6 space-y-3 text-sm">
-                <div className="rounded-xl bg-white/10 p-3">Q: 解释一下你在高并发场景下的缓存一致性方案。</div>
-                <div className="rounded-xl bg-sky-400/20 p-3">A: 使用延时双删 + 消息队列兜底，按业务容忍度做最终一致。</div>
-                <div className="rounded-xl bg-white/10 p-3">追问: 如果 Redis 故障切换期间发生写入，如何避免脏读？</div>
-              </div>
-            </div>
->>>>>>> master
-          </div>
-        </div>
-      </section>
-
-<<<<<<< HEAD
-      {successModal.open && (
-        <div className="anim-fade-in fixed inset-0 z-50 bg-slate-900/35 backdrop-blur-[1px] flex items-center justify-center p-4">
-          <div className="anim-pop-in w-full max-w-sm bg-white rounded-2xl border border-emerald-200 shadow-2xl p-6 text-center">
-            <div className="mx-auto w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center toast-icon-pop">
-              <CheckCircle2 size={24} />
-            </div>
-            <h3 className="mt-4 text-lg font-semibold text-slate-900">操作成功</h3>
-            <p className="mt-2 text-sm text-slate-600">{successModal.message}</p>
-          </div>
-        </div>
-      )}
-
-      {showAuthModal && (
-        <div className="anim-fade-in fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="anim-pop-in w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-2xl p-6">
-            <div className="flex items-center justify-between mb-5">
-              <div className="inline-flex rounded-lg bg-slate-100 p-1">
-                <button
-                  onClick={() => setAuthMode("login")}
-                  className={`px-3 py-1.5 text-sm rounded-md ${authMode === "login" ? "bg-white shadow text-slate-900" : "text-slate-600"}`}
-                >
-                  登录
-                </button>
-                <button
-                  onClick={() => setAuthMode("register")}
-                  className={`px-3 py-1.5 text-sm rounded-md ${authMode === "register" ? "bg-white shadow text-slate-900" : "text-slate-600"}`}
-                >
-                  注册
-                </button>
-              </div>
-              <button onClick={closeAuthModal} className="text-slate-500 hover:text-slate-800 text-sm">
-                关闭
-              </button>
-            </div>
-            {authError && <p className="mb-4 text-sm rounded-lg bg-red-50 text-red-700 border border-red-200 px-3 py-2">{authError}</p>}
-            {authSuccess && <p className="mb-4 text-sm rounded-lg bg-green-50 text-green-700 border border-green-200 px-3 py-2">{authSuccess}</p>}
-
-            {authMode === "login" ? (
-              <form onSubmit={submitLogin} className="space-y-4">
-                <div>
-                  <label className="block text-sm text-slate-700 mb-2">邮箱</label>
-                  <input
-                    type="email"
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-cyan-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-slate-700 mb-2">密码</label>
-                  <input
-                    type="password"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    placeholder="请输入密码"
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-cyan-500"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={authSubmitting}
-                  className="w-full rounded-xl bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white font-semibold py-3"
-                >
-                  {authSubmitting ? "登录中..." : "登录并继续"}
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={submitRegister} className="space-y-4">
-                <div>
-                  <label className="block text-sm text-slate-700 mb-2">昵称</label>
-                  <input
-                    type="text"
-                    value={registerName}
-                    onChange={(e) => setRegisterName(e.target.value)}
-                    placeholder="请输入昵称"
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-cyan-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-slate-700 mb-2">邮箱</label>
-                  <input
-                    type="email"
-                    value={registerEmail}
-                    onChange={(e) => setRegisterEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-cyan-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-slate-700 mb-2">密码</label>
-                  <input
-                    type="password"
-                    value={registerPassword}
-                    onChange={(e) => setRegisterPassword(e.target.value)}
-                    placeholder="至少 6 位"
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-cyan-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-slate-700 mb-2">确认密码</label>
-                  <input
-                    type="password"
-                    value={registerConfirmPassword}
-                    onChange={(e) => setRegisterConfirmPassword(e.target.value)}
-                    placeholder="请再次输入密码"
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-cyan-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-slate-700 mb-2">邮箱验证码</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={registerVerificationCode}
-                      onChange={(e) => setRegisterVerificationCode(e.target.value)}
-                      placeholder="请输入 6 位验证码"
-                      className="flex-1 rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-cyan-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={onSendRegisterCode}
-                      disabled={sendingCode || countdown > 0}
-                      className="shrink-0 rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 disabled:text-slate-400 disabled:border-slate-200"
-                    >
-                      {countdown > 0 ? `${countdown}s` : sendingCode ? "发送中..." : "发送验证码"}
-                    </button>
-                  </div>
-                </div>
-                <button
-                  type="submit"
-                  disabled={authSubmitting}
-                  className="w-full rounded-xl bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-400 text-white font-semibold py-3"
-                >
-                  {authSubmitting ? "注册中..." : "注册账号"}
-                </button>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
-=======
-      <section className="mx-auto max-w-6xl px-5 pb-20">
-        <div className="grid gap-4 rounded-3xl border border-slate-200 bg-white p-5 sm:grid-cols-3 sm:p-7">
-          {quickStats.map((item, idx) => (
-            <div key={item.label} style={{ "--d": `${120 + idx * 120}ms` } as CSSProperties} className="anim-fade-up rounded-2xl border border-slate-100 bg-slate-50 p-5 text-center">
-              <p className="text-3xl font-semibold text-slate-900">{item.value}</p>
-              <p className="mt-1 text-sm text-slate-600">{item.label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-5 pb-20">
-        <div className="mb-8 flex items-center gap-2 text-slate-500">
-          <ShieldCheck size={16} />
-          <span className="text-sm">核心能力</span>
-        </div>
-        <div className="grid gap-5 md:grid-cols-3">
-          {pillars.map((item, idx) => {
-            const Icon = item.icon;
-            return (
-              <article key={item.title} style={{ "--d": `${180 + idx * 120}ms` } as CSSProperties} className="anim-fade-up group rounded-3xl border border-slate-200 bg-white p-6 transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(15,23,42,0.12)]">
-                <div className="inline-flex rounded-xl bg-slate-900 p-2 text-white">
-                  <Icon size={18} />
-                </div>
-                <h3 className="mt-4 text-xl font-semibold text-slate-900">{item.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-slate-600">{item.desc}</p>
-              </article>
-            );
-          })}
-        </div>
-      </section>
-
-      <section id="how-it-works" className="mx-auto max-w-6xl px-5 pb-24">
-        <div className="rounded-[2rem] border border-slate-200 bg-gradient-to-br from-slate-900 to-slate-800 p-8 text-white sm:p-10">
-          <div className="flex items-center gap-2 text-sm text-slate-300">
-            <Workflow size={16} />
-            使用流程
-          </div>
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            {flow.map((item, idx) => (
-              <div key={item.step} style={{ "--d": `${200 + idx * 120}ms` } as CSSProperties} className="anim-fade-up rounded-2xl border border-white/15 bg-white/5 p-5">
-                <p className="text-xs text-slate-300">STEP {item.step}</p>
-                <h3 className="mt-2 text-lg font-medium">{item.title}</h3>
-                <p className="mt-2 text-sm text-slate-300">{item.text}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-8">
-            <Link href="/start" className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-medium text-slate-900 transition hover:bg-slate-200">
-              现在开始模拟
-              <ArrowRight size={15} />
+          
+          <div className="anim-fade-up" style={{ animationDelay: '200ms' }}>
+            <Link href="/start" className="group relative inline-flex items-center justify-center gap-2 rounded-full bg-white text-black px-8 py-4 text-lg font-medium transition hover:scale-105 active:scale-95">
+              立即开始体验
+              <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
             </Link>
           </div>
         </div>
+
+        {/* Cinematic Bottom Gradient */}
+        <div className="absolute bottom-0 w-full h-48 bg-gradient-to-t from-black to-transparent pointer-events-none fade-out" />
       </section>
->>>>>>> master
+
+      {/* Feature Section 1 */}
+      <section className="bg-black py-32 px-6">
+        <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-16 items-center">
+          <div className="order-2 md:order-1 relative aspect-square md:aspect-[4/3] rounded-3xl overflow-hidden bg-gradient-to-br from-white/10 to-transparent border border-white/5 flex items-center justify-center">
+            {/* Abstract visual representing dynamic logic */}
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:32px_32px]"></div>
+            <div className="w-64 h-64 border border-white/20 rounded-full flex items-center justify-center relative">
+              <div className="absolute inset-0 border border-emerald-400/30 rounded-full animate-[spin_10s_linear_infinite]"></div>
+              <div className="w-48 h-48 border border-white/10 rounded-full flex items-center justify-center">
+                <div className="w-32 h-32 bg-gradient-to-tr from-emerald-400 to-cyan-500 rounded-full blur-2xl opacity-40"></div>
+                <div className="absolute font-mono text-sm tracking-widest text-emerald-300">DYNAMIC</div>
+              </div>
+            </div>
+          </div>
+          <div className="order-1 md:order-2 space-y-6">
+            <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white leading-tight">
+              突破题库套路。<br/><span className="text-white/40">真正懂你的回答。</span>
+            </h2>
+            <p className="text-lg text-white/50 leading-relaxed max-w-lg font-light">
+              Interview Copilot 抛弃了传统的僵化题库。它会倾听你的回答，捕捉技术细节，像资深面试官一样进行深度追问。每一次反问，都在挖掘你的真实边界。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Feature Section 2 */}
+      <section className="bg-[#050505] py-32 px-6">
+        <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-16 items-center">
+          <div className="space-y-6">
+            <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white leading-tight">
+              简历与 JD 融合。<br/><span className="text-white/40">靶向诊断能力。</span>
+            </h2>
+            <p className="text-lg text-white/50 leading-relaxed max-w-lg font-light">
+              你的经历独一无二。上传简历与目标岗位 JD，系统会根据两者之间的契合度，量身定制每一个问题，确保演练始终聚焦于最具价值的核心考点。
+            </p>
+          </div>
+          <div className="relative aspect-square md:aspect-[4/3] rounded-3xl overflow-hidden bg-gradient-to-tr from-white/5 to-transparent border border-white/5 flex items-center justify-center">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_100%_0,rgba(255,255,255,0.05)_0%,transparent_50%)]"></div>
+            <div className="flex flex-col gap-4 w-3/4">
+               <div className="h-12 w-full bg-white/10 rounded-xl border border-white/10 flex items-center px-4">
+                  <div className="h-2 w-1/3 bg-white/30 rounded-full"></div>
+               </div>
+               <div className="h-12 w-[85%] bg-white/5 rounded-xl border border-white/5 flex items-center px-4">
+                  <div className="h-2 w-1/2 bg-white/20 rounded-full"></div>
+               </div>
+               <div className="h-24 w-full bg-sky-500/10 rounded-xl border border-sky-500/20 flex flex-col justify-center px-4 gap-3 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-sky-400/10 to-transparent -translate-x-[100%] animate-[shineSweep_3s_infinite]"></div>
+                  <div className="h-2 w-1/4 bg-sky-400/60 rounded-full"></div>
+                  <div className="h-2 w-3/4 bg-sky-400/40 rounded-full"></div>
+               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Feature Section 3 */}
+      <section className="bg-black py-40 px-6 text-center">
+        <div className="max-w-4xl mx-auto space-y-8">
+          <h2 className="text-4xl md:text-6xl font-semibold tracking-tight text-white">
+            不留遗憾的评估复盘。
+          </h2>
+          <p className="text-xl text-white/50 font-light">
+            我们不仅给出一个分数。我们为你拆解每一题的表现，指出思维盲区，并提供高分参考范例，让你的能力在每一次复盘中得到实质性跃迁。
+          </p>
+        </div>
+      </section>
+
+      {/* Footer CTA */}
+      <section className="bg-black py-32 px-6 border-t border-white/10">
+        <div className="max-w-3xl mx-auto text-center space-y-10">
+          <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-2">
+            准备好迎接下一次面试了吗？
+          </h2>
+          {user ? (
+            <div className="flex flex-col items-center gap-6">
+              <p className="text-xl text-white/50 font-light">你好，{user.name}，控制台已经为您准备就绪。</p>
+              <Link href="/start" className="inline-flex items-center justify-center rounded-full bg-white text-black px-10 py-5 text-xl font-medium transition hover:scale-105">
+                立即重启演练 <ArrowRight size={20} className="ml-2" />
+              </Link>
+            </div>
+          ) : (
+            <button onClick={() => setIsAuthOpen(true)} className="inline-flex items-center justify-center rounded-full bg-white text-black px-10 py-5 text-xl font-medium transition hover:scale-105 relative group overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-cyan-400 opacity-0 group-hover:opacity-100 transition duration-300"></div>
+              <span className="relative z-10 group-hover:text-white transition-colors">登录系统并启航</span>
+            </button>
+          )}
+        </div>
+      </section>
+
+      <AuthModal 
+        isOpen={isAuthOpen} 
+        onClose={() => setIsAuthOpen(false)} 
+        onSuccess={() => { window.location.href = "/start"; }} 
+      />
     </main>
   );
 }
