@@ -746,6 +746,320 @@ async def delete_report(report_id: str, authorization: str = Header(None)):
         "data": True
     }
 
+
+# =========================================================
+# 面经广场 (Interview Experience Square) Endpoints
+# =========================================================
+
+class PostCreateRequest(BaseModel):
+    company: str
+    role: str
+    content: str
+    tags: List[str] = []
+
+@app.post("/api/posts")
+async def create_post(request: PostCreateRequest, authorization: str = Header(None)):
+    user = get_current_user_from_auth_header(authorization)
+    post_id = str(uuid.uuid4())
+    now = now_iso()
+    
+    post_data = {
+        "id": post_id,
+        "author_email": user["email"],
+        "author_name": user.get("name") or "匿名用户",
+        "author_avatar": user.get("avatar_url", ""),
+        "company": request.company.strip(),
+        "role": request.role.strip(),
+        "content": request.content.strip(),
+        "tags": [t.strip() for t in request.tags if t.strip()],
+        "created_at": now,
+        "views_count": 0,
+        "likes_count": 0,
+        "comments_count": 0
+    }
+    
+    redis_client.set(f"post_detail:{post_id}", json.dumps(post_data, ensure_ascii=False))
+    redis_client.lpush("global:post_ids", post_id)
+    
+    return {"code": 200, "data": post_data}
+
+@app.get("/api/posts")
+async def list_posts(q: str = "", limit: int = 100):
+    # Fetch post IDs
+    ids = redis_client.lrange("global:post_ids", 0, limit * 2) # Fetch extra for client-side/server-side filtering
+    posts = []
+    
+    # Safe guard for empty strings
+    if not ids:
+        ids_set = set() # Fallback if list structure was missing or something, but usually lrange handles it
+    else:
+        # Avoid duplicate rendering (if same post got mistakenly pushed)
+        ids_set = list(dict.fromkeys(ids)) 
+        
+    for pid in ids_set:
+        val = redis_client.get(f"post_detail:{pid}")
+        if val:
+            try:
+                posts.append(json.loads(val))
+            except Exception:
+                pass
+                
+    if q:
+        q_lower = q.lower()
+        posts = [p for p in posts if (
+            q_lower in p.get("company", "").lower() or 
+            q_lower in p.get("role", "").lower() or 
+            q_lower in p.get("content", "").lower() or
+            any(q_lower in tag.lower() for tag in p.get("tags", []))
+        )]
+        
+    # Sort by created_at desc (newest first)
+    posts.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+    
+    # Optional snippet trimming for listing to save bandwidth
+    for p in posts:
+        if len(p["content"]) > 300:
+            p["content_snippet"] = p["content"][:300] + "..."
+        else:
+            p["content_snippet"] = p["content"]
+            
+    return {"code": 200, "data": posts[:limit]}
+
+@app.get("/api/posts/{post_id}")
+async def get_post(post_id: str):
+    key = f"post_detail:{post_id}"
+    val = redis_client.get(key)
+    if not val:
+        raise HTTPException(code=404, detail="面经帖子不存在或已被删除")
+    
+    post = json.loads(val)
+    # 增加浏览量
+    post["views_count"] = post.get("views_count", 0) + 1
+    redis_client.set(key, json.dumps(post, ensure_ascii=False))
+    return {"code": 200, "data": post}
+
+@app.post("/api/posts/{post_id}/like")
+async def toggle_post_like(post_id: str, authorization: str = Header(None)):
+    user = get_current_user_from_auth_header(authorization)
+    email = user["email"]
+    key = f"post_detail:{post_id}"
+    val = redis_client.get(key)
+    
+    if not val:
+        raise HTTPException(404, "帖子不存在")
+        
+    post = json.loads(val)
+    like_key = f"post_likes:{post_id}"
+    is_member = redis_client.sismember(like_key, email)
+    
+    if is_member:
+        redis_client.srem(like_key, email)
+        post["likes_count"] = max(0, post.get("likes_count", 1) - 1)
+        action = "unliked"
+    else:
+        redis_client.sadd(like_key, email)
+        post["likes_count"] = post.get("likes_count", 0) + 1
+        action = "liked"
+        
+    redis_client.set(key, json.dumps(post, ensure_ascii=False))
+    
+    # Notify post author about the like (don't notify self)
+    if action == "liked" and post.get("author_email") and post.get("author_email") != email:
+        push_notification(
+            target_email=post["author_email"],
+            notif_type="like",
+            title="收到新的点赞",
+            body=f"{user.get('name', '有人')} 赞了你的面经「{post.get('company', '')} {post.get('role', '')}」",
+            link=f"/square/{post_id}",
+            actor_name=user.get('name', '')
+        )
+    
+    return {"code": 200, "data": {"likes_count": post["likes_count"], "action": action, "is_liked": action == "liked"}}
+
+@app.get("/api/posts/{post_id}/like-status")
+async def get_like_status(post_id: str, authorization: str = Header(None)):
+    try:
+        user = get_current_user_from_auth_header(authorization)
+        email = user["email"]
+        like_key = f"post_likes:{post_id}"
+        is_member = redis_client.sismember(like_key, email)
+        return {"code": 200, "data": {"is_liked": bool(is_member)}}
+    except Exception:
+        return {"code": 200, "data": {"is_liked": False}}
+
+class CommentCreateRequest(BaseModel):
+    content: str
+    reply_to: str = ""
+    reply_to_name: str = ""
+
+# ==========================================
+# Notification System
+# ==========================================
+def push_notification(target_email: str, notif_type: str, title: str, body: str, link: str = "", actor_name: str = ""):
+    """Push a notification to a user's notification queue (max 100 stored)"""
+    if not target_email:
+        return
+    notif = {
+        "id": str(uuid.uuid4()),
+        "type": notif_type,
+        "title": title,
+        "body": body,
+        "link": link,
+        "actor_name": actor_name,
+        "is_read": False,
+        "created_at": now_iso()
+    }
+    key = f"notifications:{target_email}"
+    redis_client.lpush(key, json.dumps(notif, ensure_ascii=False))
+    redis_client.ltrim(key, 0, 99)  # Keep latest 100
+
+    
+@app.delete("/api/posts/{post_id}")
+async def delete_post(post_id: str, authorization: str = Header(None)):
+    user = get_current_user_from_auth_header(authorization)
+    key = f"post_detail:{post_id}"
+    val = redis_client.get(key)
+    if not val:
+        raise HTTPException(404, "帖子不存在")
+    post = json.loads(val)
+    if post.get("author_email") != user["email"]:
+        raise HTTPException(403, "只能删除自己发布的帖子")
+    redis_client.delete(key)
+    redis_client.lrem("global:post_ids", 1, post_id)
+    redis_client.delete(f"post_comments:{post_id}")
+    redis_client.delete(f"post_likes:{post_id}")
+    return {"code": 200, "data": True}
+
+@app.post("/api/posts/{post_id}/comments")
+async def create_post_comment(post_id: str, request: CommentCreateRequest, authorization: str = Header(None)):
+    if not request.content.strip():
+        raise HTTPException(400, "评论内容不可为空")
+        
+    user = get_current_user_from_auth_header(authorization)
+    key = f"post_detail:{post_id}"
+    val = redis_client.get(key)
+    if not val:
+        raise HTTPException(404, "帖子不存在")
+        
+    post = json.loads(val)
+    comment = {
+        "id": str(uuid.uuid4()),
+        "post_id": post_id,
+        "author_email": user["email"],
+        "author_name": user.get("name") or "匿名用户",
+        "author_avatar": user.get("avatar_url", ""),
+        "content": request.content.strip(),
+        "reply_to": request.reply_to,
+        "reply_to_name": request.reply_to_name,
+        "created_at": now_iso()
+    }
+    
+    redis_client.rpush(f"post_comments:{post_id}", json.dumps(comment, ensure_ascii=False))
+    
+    # 增加统计
+    post["comments_count"] = post.get("comments_count", 0) + 1
+    redis_client.set(key, json.dumps(post, ensure_ascii=False))
+    
+    # Notify post author about the comment (don't notify self)
+    if post.get("author_email") and post.get("author_email") != user["email"]:
+        push_notification(
+            target_email=post["author_email"],
+            notif_type="comment",
+            title="收到新评论",
+            body=f"{user.get('name', '有人')} 评论了你的面经「{post.get('company', '')} {post.get('role', '')}」：{request.content[:50]}",
+            link=f"/square/{post_id}#{comment['id']}",
+            actor_name=user.get('name', '')
+        )
+    
+    return {"code": 200, "data": comment}
+
+@app.get("/api/posts/{post_id}/comments")
+async def list_post_comments(post_id: str):
+    raw_comments = redis_client.lrange(f"post_comments:{post_id}", 0, 500)
+    comments = []
+    for c in raw_comments:
+        try:
+            comments.append(json.loads(c))
+        except Exception:
+            pass
+    return {"code": 200, "data": comments}
+
+@app.delete("/api/posts/{post_id}/comments/{comment_id}")
+async def delete_post_comment(post_id: str, comment_id: str, authorization: str = Header(None)):
+    user = get_current_user_from_auth_header(authorization)
+    comments_key = f"post_comments:{post_id}"
+    raw_comments = redis_client.lrange(comments_key, 0, 500)
+    target = None
+    for item in raw_comments:
+        try:
+            parsed = json.loads(item)
+            if parsed.get("id") == comment_id:
+                if parsed.get("author_email") != user["email"]:
+                    raise HTTPException(403, "只能删除自己的评论")
+                target = item
+                break
+        except Exception:
+            continue
+    if not target:
+        raise HTTPException(404, "评论不存在")
+    redis_client.lrem(comments_key, 1, target)
+    # 减少计数
+    post_key = f"post_detail:{post_id}"
+    pval = redis_client.get(post_key)
+    if pval:
+        p = json.loads(pval)
+        p["comments_count"] = max(0, p.get("comments_count", 1) - 1)
+        redis_client.set(post_key, json.dumps(p, ensure_ascii=False))
+    return {"code": 200, "data": True}
+
+
+# ==========================================
+# Notification API Endpoints
+# ==========================================
+@app.get("/api/notifications")
+async def get_notifications(authorization: str = Header(None)):
+    user = get_current_user_from_auth_header(authorization)
+    key = f"notifications:{user['email']}"
+    raw = redis_client.lrange(key, 0, 49)
+    notifs = []
+    for item in raw:
+        try:
+            notifs.append(json.loads(item))
+        except Exception:
+            pass
+    return {"code": 200, "data": notifs}
+
+@app.post("/api/notifications/{notif_id}/read")
+async def mark_notification_read(notif_id: str, authorization: str = Header(None)):
+    user = get_current_user_from_auth_header(authorization)
+    key = f"notifications:{user['email']}"
+    raw = redis_client.lrange(key, 0, 99)
+    for i, item in enumerate(raw):
+        try:
+            n = json.loads(item)
+            if n.get("id") == notif_id:
+                n["is_read"] = True
+                redis_client.lset(key, i, json.dumps(n, ensure_ascii=False))
+                break
+        except Exception:
+            pass
+    return {"code": 200, "data": True}
+
+@app.post("/api/notifications/read-all")
+async def mark_all_notifications_read(authorization: str = Header(None)):
+    user = get_current_user_from_auth_header(authorization)
+    key = f"notifications:{user['email']}"
+    raw = redis_client.lrange(key, 0, 99)
+    for i, item in enumerate(raw):
+        try:
+            n = json.loads(item)
+            if not n.get("is_read"):
+                n["is_read"] = True
+                redis_client.lset(key, i, json.dumps(n, ensure_ascii=False))
+        except Exception:
+            pass
+    return {"code": 200, "data": True}
+
 @app.post("/api/init-interview")
 async def init_interview(
     job_title: str = Form(...),

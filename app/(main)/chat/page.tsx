@@ -78,18 +78,29 @@ export default function ChatPage() {
 
   if (!authChecked) {
     return (
-      <main className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-500">
-        正在检查登录状态...
+      <main className="h-full flex items-center justify-center text-slate-400 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #f0f4ff 0%, #fafbff 40%, #f0fffe 70%, #f5f3ff 100%)" }}>
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+          <div className="absolute top-[5%] right-[5%] w-[50%] h-[40%] rounded-full bg-gradient-to-b from-indigo-200/40 via-sky-200/15 to-transparent blur-[80px] animate-pulse" style={{ animationDuration: "9s" }} />
+          <div className="absolute bottom-[5%] left-[0%] w-[45%] h-[45%] rounded-full bg-gradient-to-tr from-cyan-200/35 via-teal-200/10 to-transparent blur-[80px] animate-pulse" style={{ animationDuration: "11s" }} />
+        </div>
+        <div className="relative z-10 flex flex-col items-center gap-3">
+          <div className="w-8 h-8 rounded-full border-[3px] border-slate-200 border-t-cyan-500 animate-spin"></div>
+          <span className="text-sm font-medium">正在检查登录状态...</span>
+        </div>
       </main>
     );
   }
 
   if (authCheckFailed) {
     return (
-      <main className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white border border-gray-200 rounded-xl p-6 text-center">
-          <h2 className="text-lg font-semibold text-gray-800">无法进入面试会话</h2>
-          <p className="text-sm text-gray-600 mt-2">{errorMsg || "校验失败，请刷新或重新登录。"}</p>
+      <main className="h-full flex items-center justify-center p-4 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #f0f4ff 0%, #fafbff 40%, #f0fffe 70%, #f5f3ff 100%)" }}>
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+          <div className="absolute top-[5%] right-[5%] w-[50%] h-[40%] rounded-full bg-gradient-to-b from-indigo-200/40 via-sky-200/15 to-transparent blur-[80px] animate-pulse" style={{ animationDuration: "9s" }} />
+          <div className="absolute bottom-[5%] left-[0%] w-[45%] h-[45%] rounded-full bg-gradient-to-tr from-cyan-200/35 via-teal-200/10 to-transparent blur-[80px] animate-pulse" style={{ animationDuration: "11s" }} />
+        </div>
+        <div className="max-w-md w-full bg-white/70 backdrop-blur-lg border border-white/60 rounded-3xl p-8 text-center shadow-[0_4px_30px_rgba(0,0,0,0.05)] relative z-10">
+          <h2 className="text-lg font-bold text-slate-800">无法进入面试会话</h2>
+          <p className="text-sm text-slate-500 mt-2">{errorMsg || "校验失败，请刷新或重新登录。"}</p>
         </div>
       </main>
     );

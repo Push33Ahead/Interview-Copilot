@@ -10,12 +10,14 @@ import {
   LogOut,
   Radar,
   User,
-  Settings
+  Settings,
+  Globe
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { fetchCurrentUser, logout, AuthUser, resolveAvatarUrl } from "@/app/lib/auth";
 import UserProfileModal from "@/app/components/UserProfileModal";
 import AuthModal from "@/app/components/AuthModal";
+import NotificationBell from "@/app/components/NotificationBell";
 import { CheckCircle2, Info } from "lucide-react";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
@@ -54,6 +56,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     { name: "当前会话", href: "/chat", icon: MessageSquare },
     { name: "面试历史", href: "/history", icon: History },
     { name: "评估报告", href: "/report", icon: FileText },
+    { name: "面经广场", href: "/square", icon: Globe },
   ];
 
   return (
@@ -89,8 +92,14 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           })}
         </nav>
 
-        {/* User profile snippet at bottom */}
-        <div className="p-4 border-t border-slate-800/80 mt-auto">
+        {/* Notification Bell + User profile */}
+        <div className="p-4 border-t border-slate-800/80 mt-auto space-y-3">
+          {user && (
+            <div className="flex items-center justify-between px-1">
+              <span className="text-xs text-slate-500 font-medium">消息通知</span>
+              <NotificationBell />
+            </div>
+          )}
           {user ? (
             <div className="flex items-center justify-between group bg-[#161922] p-2.5 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
               <button onClick={() => setIsProfileOpen(true)} className="flex items-center gap-3 overflow-hidden flex-1 text-left relative group/btn" title="点击设置实名资料">

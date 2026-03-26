@@ -421,3 +421,198 @@ export async function deleteReport(id: string): Promise<{ ok: true } | { ok: fal
     return { ok: false, message: detail ? `删除失败：${detail}` : "删除失败" };
   }
 }
+
+// ==========================================
+// Interview Experience Square (面经广场) API
+// ==========================================
+
+export interface SquarePost {
+  id: string;
+  author_email: string;
+  author_name: string;
+  author_avatar: string;
+  company: string;
+  role: string;
+  content: string;
+  content_snippet?: string;
+  tags: string[];
+  created_at: string;
+  views_count: number;
+  likes_count: number;
+  comments_count: number;
+}
+
+export interface SquareComment {
+  id: string;
+  post_id: string;
+  author_email: string;
+  author_name: string;
+  author_avatar: string;
+  content: string;
+  reply_to?: string;
+  reply_to_name?: string;
+  created_at: string;
+}
+
+export async function fetchPosts(query: string = ""): Promise<{ ok: boolean; posts: SquarePost[]; message?: string }> {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/posts`, {
+      params: { q: query, limit: 100 },
+      timeout: 10000,
+    });
+    if (response.data?.code === 200) {
+      return { ok: true, posts: response.data.data || [] };
+    }
+    return { ok: false, posts: [] };
+  } catch (error) {
+    return { ok: false, posts: [], message: "获取面经列表失败" };
+  }
+}
+
+export async function createPost(data: { company: string; role: string; content: string; tags: string[] }) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/api/posts`, data, {
+      headers: buildAuthHeaders(),
+      timeout: 10000,
+    });
+    if (response.data?.code === 200) return { ok: true, post: response.data.data as SquarePost };
+    return { ok: false, message: "发帖失败" };
+  } catch (error) {
+    const detail = axios.isAxiosError(error) ? String(error.response?.data?.detail || "") : "";
+    return { ok: false, message: detail || "发帖请求失败" };
+  }
+}
+
+export async function deletePost(post_id: string): Promise<{ ok: true } | { ok: false; message: string }> {
+  try {
+    const response = await axios.delete(`${API_BASE_URL}/api/posts/${post_id}`, {
+      headers: buildAuthHeaders(),
+      timeout: 10000,
+    });
+    if (response.data?.code === 200) return { ok: true };
+    return { ok: false, message: "删除失败" };
+  } catch (error) {
+    const detail = axios.isAxiosError(error) ? String(error.response?.data?.detail || "") : "";
+    return { ok: false, message: detail || "删除帖子失败" };
+  }
+}
+
+export async function fetchPostDetail(post_id: string): Promise<{ ok: boolean; post?: SquarePost; message?: string }> {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/posts/${post_id}`, { timeout: 10000 });
+    if (response.data?.code === 200) return { ok: true, post: response.data.data };
+    return { ok: false, message: "获取帖子详情失败" };
+  } catch {
+    return { ok: false, message: "请求详情失败" };
+  }
+}
+
+export async function togglePostLike(post_id: string): Promise<{ ok: boolean; likes_count?: number; is_liked?: boolean; message?: string }> {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/api/posts/${post_id}/like`, {}, {
+      headers: buildAuthHeaders(),
+      timeout: 5000,
+    });
+    if (response.data?.code === 200) {
+      return { ok: true, likes_count: response.data.data.likes_count, is_liked: response.data.data.is_liked };
+    }
+    return { ok: false, message: "操作失败" };
+  } catch {
+    return { ok: false, message: "点赞失败，请确已登录" };
+  }
+}
+
+export async function getPostLikeStatus(post_id: string): Promise<boolean> {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/posts/${post_id}/like-status`, {
+      headers: buildAuthHeaders(),
+      timeout: 5000,
+    });
+    return !!response.data?.data?.is_liked;
+  } catch {
+    return false;
+  }
+}
+
+export async function fetchPostComments(post_id: string): Promise<{ ok: boolean; comments: SquareComment[] }> {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/posts/${post_id}/comments`, { timeout: 8000 });
+    if (response.data?.code === 200) return { ok: true, comments: response.data.data || [] };
+    return { ok: false, comments: [] };
+  } catch {
+    return { ok: false, comments: [] };
+  }
+}
+
+export async function createPostComment(post_id: string, content: string, reply_to?: string, reply_to_name?: string): Promise<{ ok: boolean; comment?: SquareComment; message?: string }> {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/api/posts/${post_id}/comments`, { content, reply_to: reply_to || "", reply_to_name: reply_to_name || "" }, {
+      headers: buildAuthHeaders(),
+      timeout: 10000,
+    });
+    if (response.data?.code === 200) return { ok: true, comment: response.data.data };
+    return { ok: false, message: "评论失败" };
+  } catch (error) {
+    const detail = axios.isAxiosError(error) ? String(error.response?.data?.detail || "") : "";
+    return { ok: false, message: detail || "无法发布评论，请确已登录" };
+  }
+}
+
+export async function deleteComment(post_id: string, comment_id: string): Promise<{ ok: true } | { ok: false; message: string }> {
+  try {
+    const response = await axios.delete(`${API_BASE_URL}/api/posts/${post_id}/comments/${comment_id}`, {
+      headers: buildAuthHeaders(),
+      timeout: 10000,
+    });
+    if (response.data?.code === 200) return { ok: true };
+    return { ok: false, message: "删除评论失败" };
+  } catch (error) {
+    const detail = axios.isAxiosError(error) ? String(error.response?.data?.detail || "") : "";
+    return { ok: false, message: detail || "删除评论失败" };
+  }
+}
+
+// ==========================================
+// Notification System
+// ==========================================
+export interface Notification {
+  id: string;
+  type: "like" | "comment" | "report" | string;
+  title: string;
+  body: string;
+  link: string;
+  actor_name: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export async function fetchNotifications(): Promise<{ ok: boolean; notifications: Notification[] }> {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/notifications`, {
+      headers: buildAuthHeaders(),
+      timeout: 10000,
+    });
+    if (response.data?.code === 200) return { ok: true, notifications: response.data.data || [] };
+    return { ok: false, notifications: [] };
+  } catch {
+    return { ok: false, notifications: [] };
+  }
+}
+
+export async function markNotificationRead(notifId: string): Promise<void> {
+  try {
+    await axios.post(`${API_BASE_URL}/api/notifications/${notifId}/read`, {}, {
+      headers: buildAuthHeaders(),
+      timeout: 5000,
+    });
+  } catch { /* silent */ }
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  try {
+    await axios.post(`${API_BASE_URL}/api/notifications/read-all`, {}, {
+      headers: buildAuthHeaders(),
+      timeout: 5000,
+    });
+  } catch { /* silent */ }
+}

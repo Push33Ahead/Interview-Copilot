@@ -13,21 +13,21 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchCurrentUser().then(setUser);
-    
+
     const handleToast = (e: any) => {
-       setToast(e.detail);
-       setTimeout(() => setToast(null), 3000);
+      setToast(e.detail);
+      setTimeout(() => setToast(null), 3000);
     };
-    
+
     // Listen to success directly from auth modal embedded globally or here
     const handleAuthSuccess = (e: any) => {
-       if (e.detail?.name) setUser(e.detail);
+      if (e.detail?.name) setUser(e.detail);
     };
     window.addEventListener("auth-success", handleAuthSuccess);
     window.addEventListener("show-toast", handleToast);
     return () => {
-       window.removeEventListener("show-toast", handleToast);
-       window.removeEventListener("auth-success", handleAuthSuccess);
+      window.removeEventListener("show-toast", handleToast);
+      window.removeEventListener("auth-success", handleAuthSuccess);
     }
   }, []);
 
@@ -52,7 +52,7 @@ export default function HomePage() {
             <div className="flex items-center gap-4">
               <span className="text-white/80 text-sm font-light hidden sm:inline-block">你好，{user.name}</span>
               <Link href="/start" className="text-white/80 transition hover:text-white font-medium flex items-center gap-1.5 bg-white/10 px-4 py-1.5 rounded-full hover:bg-white/20">
-                 进入控制台 <ArrowRight size={14} />
+                进入控制台 <ArrowRight size={14} />
               </Link>
             </div>
           ) : (
@@ -76,7 +76,7 @@ export default function HomePage() {
           <p className="text-xl md:text-2xl text-white/60 font-light max-w-2xl mb-12 anim-fade-up" style={{ animationDelay: '100ms' }}>
             更聪明的 AI，呈现更真实的场景。不仅是练习，更是进化。
           </p>
-          
+
           <div className="anim-fade-up" style={{ animationDelay: '200ms' }}>
             <Link href="/start" className="group relative inline-flex items-center justify-center gap-2 rounded-full bg-white text-black px-8 py-4 text-lg font-medium transition hover:scale-105 active:scale-95">
               立即开始体验
@@ -105,7 +105,7 @@ export default function HomePage() {
           </div>
           <div className="order-1 md:order-2 space-y-6">
             <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white leading-tight">
-              突破题库套路。<br/><span className="text-white/40">真正懂你的回答。</span>
+              突破题库套路。<br /><span className="text-white/40">真正懂你的回答。</span>
             </h2>
             <p className="text-lg text-white/50 leading-relaxed max-w-lg font-light">
               Interview Copilot 抛弃了传统的僵化题库。它会倾听你的回答，捕捉技术细节，像资深面试官一样进行深度追问。每一次反问，都在挖掘你的真实边界。
@@ -119,7 +119,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-16 items-center">
           <div className="space-y-6">
             <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white leading-tight">
-              简历与 JD 融合。<br/><span className="text-white/40">靶向诊断能力。</span>
+              简历与 JD 融合。<br /><span className="text-white/40">靶向诊断能力。</span>
             </h2>
             <p className="text-lg text-white/50 leading-relaxed max-w-lg font-light">
               你的经历独一无二。上传简历与目标岗位 JD，系统会根据两者之间的契合度，量身定制每一个问题，确保演练始终聚焦于最具价值的核心考点。
@@ -128,17 +128,17 @@ export default function HomePage() {
           <div className="relative aspect-square md:aspect-[4/3] rounded-3xl overflow-hidden bg-gradient-to-tr from-white/5 to-transparent border border-white/5 flex items-center justify-center">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_100%_0,rgba(255,255,255,0.05)_0%,transparent_50%)]"></div>
             <div className="flex flex-col gap-4 w-3/4">
-               <div className="h-12 w-full bg-white/10 rounded-xl border border-white/10 flex items-center px-4">
-                  <div className="h-2 w-1/3 bg-white/30 rounded-full"></div>
-               </div>
-               <div className="h-12 w-[85%] bg-white/5 rounded-xl border border-white/5 flex items-center px-4">
-                  <div className="h-2 w-1/2 bg-white/20 rounded-full"></div>
-               </div>
-               <div className="h-24 w-full bg-sky-500/10 rounded-xl border border-sky-500/20 flex flex-col justify-center px-4 gap-3 relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-sky-400/10 to-transparent -translate-x-[100%] animate-[shineSweep_3s_infinite]"></div>
-                  <div className="h-2 w-1/4 bg-sky-400/60 rounded-full"></div>
-                  <div className="h-2 w-3/4 bg-sky-400/40 rounded-full"></div>
-               </div>
+              <div className="h-12 w-full bg-white/10 rounded-xl border border-white/10 flex items-center px-4">
+                <div className="h-2 w-1/3 bg-white/30 rounded-full"></div>
+              </div>
+              <div className="h-12 w-[85%] bg-white/5 rounded-xl border border-white/5 flex items-center px-4">
+                <div className="h-2 w-1/2 bg-white/20 rounded-full"></div>
+              </div>
+              <div className="h-24 w-full bg-sky-500/10 rounded-xl border border-sky-500/20 flex flex-col justify-center px-4 gap-3 relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-sky-400/10 to-transparent -translate-x-[100%] animate-[shineSweep_3s_infinite]"></div>
+                <div className="h-2 w-1/4 bg-sky-400/60 rounded-full"></div>
+                <div className="h-2 w-3/4 bg-sky-400/40 rounded-full"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -166,7 +166,7 @@ export default function HomePage() {
             <div className="flex flex-col items-center gap-6">
               <p className="text-xl text-white/50 font-light">你好，{user.name}，控制台已经为您准备就绪。</p>
               <Link href="/start" className="inline-flex items-center justify-center rounded-full bg-white text-black px-10 py-5 text-xl font-medium transition hover:scale-105">
-                立即重启演练 <ArrowRight size={20} className="ml-2" />
+                立即开始演练 <ArrowRight size={20} className="ml-2" />
               </Link>
             </div>
           ) : (
@@ -178,10 +178,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      <AuthModal 
-        isOpen={isAuthOpen} 
-        onClose={() => setIsAuthOpen(false)} 
-        onSuccess={() => { window.location.href = "/start"; }} 
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        onSuccess={() => { window.location.href = "/start"; }}
       />
     </main>
   );

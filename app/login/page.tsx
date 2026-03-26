@@ -46,10 +46,14 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
-        <h1 className="text-2xl font-bold text-slate-800">登录账号</h1>
-        <p className="text-slate-500 mt-2 mb-8">登录后即可开始 AI 模拟面试。</p>
+    <main className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #f0f4ff 0%, #fafbff 40%, #f0fffe 70%, #f5f3ff 100%)" }}>
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[5%] right-[5%] w-[50%] h-[40%] rounded-full bg-gradient-to-b from-indigo-200/40 via-sky-200/15 to-transparent blur-[80px] animate-pulse" style={{ animationDuration: "9s" }} />
+        <div className="absolute bottom-[5%] left-[0%] w-[45%] h-[45%] rounded-full bg-gradient-to-tr from-cyan-200/35 via-teal-200/10 to-transparent blur-[80px] animate-pulse" style={{ animationDuration: "11s" }} />
+      </div>
+      <div className="w-full max-w-md bg-white/70 backdrop-blur-lg rounded-3xl p-8 border border-white/60 shadow-[0_8px_40px_rgba(0,0,0,0.05)] relative z-10">
+        <h1 className="text-2xl font-black text-slate-900 tracking-tight">登录账号</h1>
+        <p className="text-slate-500 mt-2 mb-8 text-sm font-medium">登录后即可开始 AI 模拟面试。</p>
         {errorMsg && <p className="mb-4 text-sm rounded-lg bg-red-50 text-red-700 border border-red-200 px-3 py-2">{errorMsg}</p>}
 
         <form onSubmit={onSubmit} className="space-y-5">

@@ -125,7 +125,12 @@ export default function StartPage() {
   }
 
   return (
-    <main className="h-full overflow-y-auto bg-[#FAFAFA] text-slate-900 relative flex flex-col items-center pt-[15vh] px-4 font-sans selection:bg-black selection:text-white animate-v7-fade">
+    <main className="h-full overflow-y-auto text-slate-900 relative flex flex-col items-center pt-[15vh] px-4 font-sans selection:bg-black selection:text-white animate-v7-fade" style={{ background: "linear-gradient(135deg, #f0f4ff 0%, #fafbff 40%, #f0fffe 70%, #f5f3ff 100%)" }}>
+      {/* Vivid Ambient Background */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[5%] right-[5%] w-[50%] h-[40%] rounded-full bg-gradient-to-b from-indigo-200/50 via-sky-200/20 to-transparent blur-[80px] animate-pulse" style={{ animationDuration: "9s" }} />
+        <div className="absolute bottom-[5%] left-[0%] w-[45%] h-[45%] rounded-full bg-gradient-to-tr from-cyan-200/40 via-teal-200/15 to-transparent blur-[80px] animate-pulse" style={{ animationDuration: "11s" }} />
+      </div>
       {topNotice && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-5 animate-v7-toast">
           <div className="flex items-center justify-center gap-2 rounded-full bg-slate-900 px-5 py-3.5 text-sm shadow-2xl text-white">

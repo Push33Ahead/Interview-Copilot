@@ -162,8 +162,11 @@ function ReportContent() {
 
   if (!authChecked && loading) {
     return (
-      <div className="h-full bg-slate-50 flex items-center justify-center text-slate-500">
-        正在检查登录状态...
+      <div className="h-full flex items-center justify-center text-slate-400 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #f0f4ff 0%, #fafbff 40%, #f0fffe 70%, #f5f3ff 100%)" }}>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 rounded-full border-[3px] border-slate-200 border-t-cyan-500 animate-spin"></div>
+          <span className="text-sm font-medium">正在检查登录状态...</span>
+        </div>
       </div>
     );
   }
@@ -181,10 +184,10 @@ function ReportContent() {
 
   if (loading) {
     return (
-      <div className="h-full bg-slate-50 flex flex-col items-center justify-center">
-        <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-        <h2 className="text-xl font-semibold text-gray-700">正在生成深度评估报告</h2>
-        <p className="text-gray-500 mt-2">AI 正在综合评估你的回答与简历，预计需要 15 秒左右...</p>
+      <div className="h-full flex flex-col items-center justify-center" style={{ background: "linear-gradient(135deg, #f0f4ff 0%, #fafbff 40%, #f0fffe 70%, #f5f3ff 100%)" }}>
+        <Loader2 className="w-12 h-12 text-cyan-500 animate-spin mb-4" />
+        <h2 className="text-xl font-bold text-slate-700">正在生成深度评估报告</h2>
+        <p className="text-slate-400 mt-2 text-sm">AI 正在综合评估你的回答与简历，预计需要 15 秒左右...</p>
       </div>
     );
   }
@@ -201,8 +204,12 @@ function ReportContent() {
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-slate-50 py-10 px-4 relative">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <div className="h-full overflow-y-auto py-10 px-6 lg:px-12 relative animate-v7-fade" style={{ background: "linear-gradient(135deg, #f0f4ff 0%, #fafbff 40%, #f0fffe 70%, #f5f3ff 100%)" }}>
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[5%] right-[5%] w-[50%] h-[40%] rounded-full bg-gradient-to-b from-indigo-200/45 via-sky-200/15 to-transparent blur-[80px] animate-pulse" style={{ animationDuration: "9s" }} />
+        <div className="absolute bottom-[5%] left-[0%] w-[45%] h-[45%] rounded-full bg-gradient-to-tr from-cyan-200/35 via-teal-200/10 to-transparent blur-[80px] animate-pulse" style={{ animationDuration: "11s" }} />
+      </div>
+      <div className="space-y-8 relative z-10">
         <div className="bg-white p-8 rounded-2xl shadow-sm flex flex-col items-center text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-6">面试评估报告</h1>
           <div className="w-32 h-32 rounded-full border-8 flex items-center justify-center mb-4 border-blue-500">

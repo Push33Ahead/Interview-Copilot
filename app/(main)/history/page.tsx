@@ -60,8 +60,12 @@ export default function HistoryPage() {
   }
 
   return (
-    <main className="h-full overflow-y-auto bg-[#FAFAFA] text-slate-900 py-16 px-6 lg:px-12 animate-v7-fade">
-      <div className="max-w-4xl mx-auto space-y-10">
+    <main className="h-full overflow-y-auto text-slate-900 py-16 px-6 lg:px-12 animate-v7-fade relative" style={{ background: "linear-gradient(135deg, #f0f4ff 0%, #fafbff 40%, #f0fffe 70%, #f5f3ff 100%)" }}>
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[3%] left-[8%] w-[55%] h-[40%] rounded-full bg-gradient-to-br from-indigo-200/45 via-sky-200/15 to-transparent blur-[80px] animate-pulse" style={{ animationDuration: "9s" }} />
+        <div className="absolute bottom-[5%] right-[3%] w-[50%] h-[45%] rounded-full bg-gradient-to-tl from-cyan-200/35 via-teal-200/10 to-transparent blur-[80px] animate-pulse" style={{ animationDuration: "11s" }} />
+      </div>
+      <div className="space-y-10 relative z-10">
         <header className="space-y-2">
           <h1 className="text-3xl font-semibold tracking-tight">面试历史</h1>
           <p className="text-sm text-slate-500">所有的历史模拟面试评估均保存在此，温故而知新。</p>
@@ -86,7 +90,7 @@ export default function HistoryPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {reports.map((r) => (
               <Link key={r.id} href={`/report?id=${r.id}`} className="group relative border border-slate-200 rounded-[2rem] p-6 bg-white hover:shadow-2xl hover:shadow-sky-500/10 hover:border-sky-200 transition-all cursor-pointer overflow-hidden flex flex-col">
                 <p className="font-semibold text-[17px] text-slate-900 mb-2 truncate group-hover:text-sky-600 transition-colors z-10">{r.job_title || "未命名岗位"}</p>
