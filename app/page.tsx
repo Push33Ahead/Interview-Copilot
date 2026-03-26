@@ -158,22 +158,25 @@ export default function HomePage() {
 
       {/* Footer CTA */}
       <section className="bg-black py-32 px-6 border-t border-white/10">
-        <div className="max-w-3xl mx-auto text-center space-y-10">
-          <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-2">
+        <div className="max-w-3xl mx-auto text-center space-y-12">
+          <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white">
             准备好迎接下一次面试了吗？
           </h2>
           {user ? (
             <div className="flex flex-col items-center gap-6">
               <p className="text-xl text-white/50 font-light">你好，{user.name}，控制台已经为您准备就绪。</p>
               <Link href="/start" className="inline-flex items-center justify-center rounded-full bg-white text-black px-10 py-5 text-xl font-medium transition hover:scale-105">
-                立即开始演练 <ArrowRight size={20} className="ml-2" />
+                立刻开始 <ArrowRight size={20} className="ml-2" />
               </Link>
             </div>
           ) : (
-            <button onClick={() => setIsAuthOpen(true)} className="inline-flex items-center justify-center rounded-full bg-white text-black px-10 py-5 text-xl font-medium transition hover:scale-105 relative group overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-cyan-400 opacity-0 group-hover:opacity-100 transition duration-300"></div>
-              <span className="relative z-10 group-hover:text-white transition-colors">登录系统并启航</span>
-            </button>
+            <div className="pt-2">
+              <Link href="/start" className="inline-flex items-center justify-center rounded-full bg-white text-black px-10 py-5 text-xl font-medium transition hover:scale-105 relative group overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-cyan-400 opacity-0 group-hover:opacity-100 transition duration-300"></div>
+                <span className="relative z-10 group-hover:text-white transition-colors">登录系统并启航</span>
+                <ArrowRight size={20} className="relative z-10 ml-2 group-hover:text-white transition-colors" />
+              </Link>
+            </div>
           )}
         </div>
       </section>

@@ -337,16 +337,123 @@ textarea::placeholder {
   from { opacity: 0; transform: translateY(-16px); }
   to { opacity: 1; transform: translateY(0); }
 }
+@keyframes v7-fade-smooth {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 
 .animate-v7-fade {
   opacity: 0;
-  animation: v7-fade-in 0.5s ease-out forwards;
+  animation: v7-fade-smooth 0.3s ease-out forwards;
 }
 .animate-v7-modal {
   opacity: 0;
-  animation: v7-slide-zoom 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: v7-slide-zoom 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .animate-v7-toast {
   opacity: 0;
-  animation: v7-slide-down 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: v7-slide-down 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 滑入动画 - 向上 */
+@keyframes v7-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 评论输入框滑入动画 */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 200px;
+  }
+}
+
+.animate-v7-slide-up {
+  animation: v7-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 列表项交错进入 */
+@keyframes staggerIn {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 背景渐变动画 */
+@keyframes bgGradientShift {
+  0% {
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: 0% 100%;
+  }
+  100% {
+    background-position: 0% 0%;
+  }
+}
+/* 点赞动画 */
+@keyframes heartPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+.animate-slide-down {
+  animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  overflow: hidden;
+}
+
+.animate-stagger-in {
+  opacity: 0;
+  animation: staggerIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: var(--delay, 0ms);
+}
+
+.animate-heart-pop {
+  animation: heartPop 0.3s ease-out;
+}
+
+/* 平滑滚动 */
+html {
+  scroll-behavior: smooth;
+}
+
+/* 自定义滚动条优化 */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
 }

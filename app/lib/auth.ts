@@ -573,6 +573,39 @@ export async function deleteComment(post_id: string, comment_id: string): Promis
 }
 
 // ==========================================
+// Comment Like System
+// ==========================================
+export async function toggleCommentLike(post_id: string, comment_id: string): Promise<{ ok: boolean; is_liked?: boolean; likes_count?: number }> {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/api/posts/${post_id}/comments/${comment_id}/like`, {}, {
+      headers: buildAuthHeaders(),
+      timeout: 5000,
+    });
+    if (response.data?.code === 200) {
+      return { ok: true, is_liked: response.data.data.is_liked, likes_count: response.data.data.likes_count };
+    }
+    return { ok: false };
+  } catch {
+    return { ok: false };
+  }
+}
+
+export async function getCommentLikeStatus(post_id: string, comment_id: string): Promise<{ is_liked: boolean; likes_count: number }> {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/posts/${post_id}/comments/${comment_id}/like-status`, {
+      headers: buildAuthHeaders(),
+      timeout: 5000,
+    });
+    if (response.data?.code === 200) {
+      return { is_liked: response.data.data.is_liked, likes_count: response.data.data.likes_count };
+    }
+    return { is_liked: false, likes_count: 0 };
+  } catch {
+    return { is_liked: false, likes_count: 0 };
+  }
+}
+
+// ==========================================
 // Notification System
 // ==========================================
 export interface Notification {

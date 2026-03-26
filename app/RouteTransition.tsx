@@ -8,14 +8,14 @@ export default function RouteTransition({ children }: { children: React.ReactNod
 
   useEffect(() => {
     setDisplay(true);
-    const t = setTimeout(() => setDisplay(false), 220);
+    const t = setTimeout(() => setDisplay(false), 100);
     return () => clearTimeout(t);
   }, [pathname]);
 
   return (
     <div className="relative min-h-full">
       {children}
-      {display && <div className="route-reveal pointer-events-none fixed inset-0 z-[70] bg-white/22" />}
+      {display && <div className="route-reveal pointer-events-none fixed inset-0 z-[70] bg-white/10" />}
     </div>
   );
 }

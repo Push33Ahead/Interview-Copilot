@@ -1014,6 +1014,40 @@ async def delete_post_comment(post_id: str, comment_id: str, authorization: str 
 
 
 # ==========================================
+# Comment Like API Endpoints
+# ==========================================
+@app.post("/api/posts/{post_id}/comments/{comment_id}/like")
+async def toggle_comment_like(post_id: str, comment_id: str, authorization: str = Header(None)):
+    """点赞/取消点赞评论"""
+    user = get_current_user_from_auth_header(authorization)
+    like_key = f"comment_likes:{comment_id}"
+    is_member = redis_client.sismember(like_key, user["email"])
+
+    if is_member:
+        redis_client.srem(like_key, user["email"])
+        liked = False
+    else:
+        redis_client.sadd(like_key, user["email"])
+        liked = True
+
+    likes_count = redis_client.scard(like_key)
+    return {"code": 200, "data": {"is_liked": liked, "likes_count": likes_count}}
+
+
+@app.get("/api/posts/{post_id}/comments/{comment_id}/like-status")
+async def get_comment_like_status(post_id: str, comment_id: str, authorization: str = Header(None)):
+    """获取评论点赞状态"""
+    try:
+        user = get_current_user_from_auth_header(authorization)
+        like_key = f"comment_likes:{comment_id}"
+        is_member = redis_client.sismember(like_key, user["email"])
+        likes_count = redis_client.scard(like_key)
+        return {"code": 200, "data": {"is_liked": bool(is_member), "likes_count": likes_count}}
+    except:
+        return {"code": 200, "data": {"is_liked": False, "likes_count": 0}}
+
+
+# ==========================================
 # Notification API Endpoints
 # ==========================================
 @app.get("/api/notifications")
