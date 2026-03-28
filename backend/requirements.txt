@@ -1,0 +1,19 @@
+# FastAPI - Python 3.8 兼容版本
+fastapi>=0.95.0,<0.105.0
+uvicorn[standard]>=0.20.0
+python-multipart>=0.0.6
+
+# 数据验证 - Pydantic v2 需要 Python 3.8+
+pydantic>=2.0.0,<3.0.0
+
+# Redis
+redis>=4.5.0,<6.0.0
+
+# AI API
+openai>=1.0.0,<2.0.0
+
+# PDF 解析
+PyMuPDF>=1.22.0,<2.0.0
+
+# 类型提示支持
+typing-extensions>=4.5.0
