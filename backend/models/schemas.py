@@ -1,7 +1,30 @@
 """Pydantic 数据模型"""
 
+from enum import Enum
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
+
+
+# ========== 面试类型枚举 ==========
+
+class InterviewType(str, Enum):
+    """面试类型"""
+    ENTERPRISE = "enterprise"      # 企业面试
+    POSTGRADUATE = "postgraduate"  # 考研面试
+
+
+class InitInterviewRequest(BaseModel):
+    """初始化面试请求"""
+    interview_type: InterviewType
+    
+    # 企业面试字段
+    company_name: Optional[str] = None
+    job_title: Optional[str] = None
+    job_description: Optional[str] = None
+    
+    # 考研面试字段
+    school_name: Optional[str] = None
+    major_name: Optional[str] = None
 
 
 # ========== 认证相关 ==========

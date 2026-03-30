@@ -93,6 +93,75 @@ class PostService:
         
         return posts[:limit]
     
+    def search_posts(self, query: str, limit: int = 10) -> List[Dict[str, Any]]:
+        """搜索相关帖子（用于面试场景）
+        
+        与 list_posts 的区别：
+        1. 不生成摘要，返回完整内容
+        2. 更宽松的匹配策略
+        3. 按匹配度排序（而非时间）
+        """
+        if not query or not query.strip():
+            return []
+        
+        # 获取所有帖子 ID（放宽数量限制）
+        ids = redis_client.lrange("global:post_ids", 0, 500)
+        if not ids:
+            return []
+        
+        # 去重
+        ids_set = list(dict.fromkeys(ids))
+        
+        # 获取所有帖子
+        all_posts = []
+        for pid in ids_set:
+            val = redis_client.get(make_post_key(pid))
+            if val:
+                try:
+                    all_posts.append(json.loads(val))
+                except Exception:
+                    pass
+        
+        # 关键词拆分
+        keywords = [k.strip().lower() for k in query.split() if k.strip()]
+        if not keywords:
+            return []
+        
+        # 计算匹配度并过滤
+        scored_posts = []
+        for post in all_posts:
+            score = 0
+            content = post.get("content", "").lower()
+            company = post.get("company", "").lower()
+            role = post.get("role", "").lower()
+            tags = [t.lower() for t in post.get("tags", [])]
+            
+            for keyword in keywords:
+                # 标题匹配（公司/角色）权重更高
+                if keyword in company:
+                    score += 10
+                if keyword in role:
+                    score += 10
+                # 标签匹配
+                if any(keyword in tag for tag in tags):
+                    score += 5
+                # 内容匹配
+                if keyword in content:
+                    score += 1
+            
+            if score > 0:
+                post["_match_score"] = score
+                scored_posts.append(post)
+        
+        # 按匹配度排序
+        scored_posts.sort(key=lambda x: x["_match_score"], reverse=True)
+        
+        # 清理临时字段并返回
+        for post in scored_posts:
+            post.pop("_match_score", None)
+        
+        return scored_posts[:limit]
+    
     def get_post(self, post_id: str, increment_view: bool = True) -> Dict[str, Any]:
         """获取帖子详情"""
         key = make_post_key(post_id)

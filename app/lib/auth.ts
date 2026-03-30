@@ -423,6 +423,84 @@ export async function deleteReport(id: string): Promise<{ ok: true } | { ok: fal
 }
 
 // ==========================================
+// Interview API (模拟面试)
+// ==========================================
+
+export type InterviewType = "enterprise" | "postgraduate";
+
+export interface InitInterviewData {
+  interviewType: InterviewType;
+  resume: File;
+  // 企业面试
+  companyName?: string;
+  jobTitle?: string;
+  jobDescription?: string;
+  // 考研面试
+  schoolName?: string;
+  majorName?: string;
+}
+
+export async function initInterview(
+  data: InitInterviewData
+): Promise<{ ok: true; sessionId: string; firstQuestion: string } | { ok: false; message: string }> {
+  const formData = new FormData();
+  formData.append("interview_type", data.interviewType);
+  formData.append("resume", data.resume);
+  
+  // 企业面试字段
+  if (data.interviewType === "enterprise") {
+    formData.append("company_name", data.companyName || "");
+    formData.append("job_title", data.jobTitle || "");
+    formData.append("job_description", data.jobDescription || "");
+  } else {
+    // 考研面试字段
+    formData.append("school_name", data.schoolName || "");
+    formData.append("major_name", data.majorName || "");
+  }
+
+  try {
+    const response = await axios.post(`${API_BASE_URL}/api/init-interview`, formData, {
+      headers: {
+        ...buildAuthHeaders(),
+        "Content-Type": "multipart/form-data",
+      },
+      timeout: 30000,
+    });
+
+    if (response.data?.code === 200) {
+      return {
+        ok: true,
+        sessionId: response.data.data.session_id,
+        firstQuestion: response.data.data.first_question,
+      };
+    }
+    // 处理后端返回的错误
+    const errorMsg = response.data?.message || response.data?.detail || "初始化面试失败";
+    return { ok: false, message: String(errorMsg) };
+  } catch (error: any) {
+    // 处理 axios 错误
+    let errorMsg = "初始化面试失败";
+    if (axios.isAxiosError(error)) {
+      const responseData = error.response?.data;
+      if (typeof responseData === "string") {
+        errorMsg = responseData;
+      } else if (responseData?.message) {
+        errorMsg = responseData.message;
+      } else if (responseData?.detail) {
+        if (typeof responseData.detail === "string") {
+          errorMsg = responseData.detail;
+        } else {
+          errorMsg = JSON.stringify(responseData.detail);
+        }
+      } else {
+        errorMsg = error.message || "网络请求失败";
+      }
+    }
+    return { ok: false, message: errorMsg };
+  }
+}
+
+// ==========================================
 // Interview Experience Square (面经广场) API
 // ==========================================
 

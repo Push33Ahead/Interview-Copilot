@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Paperclip, Send, Loader2, Sparkles, X, CheckCircle2, Info } from "lucide-react";
+import { Paperclip, Send, Loader2, Sparkles, X, CheckCircle2, Info, Building2, GraduationCap } from "lucide-react";
 import axios from "axios";
-import { AuthUser, buildAuthHeaders, fetchCurrentUser } from "@/app/lib/auth";
+import { AuthUser, buildAuthHeaders, fetchCurrentUser, initInterview, InterviewType } from "@/app/lib/auth";
 import { API_BASE_URL } from "@/app/lib/api";
 
 type TopNotice = { id: number; text: string; type: "success" | "info" } | null;
@@ -12,8 +12,19 @@ type TopNotice = { id: number; text: string; type: "success" | "info" } | null;
 export default function StartPage() {
   const router = useRouter();
 
+  // 面试类型
+  const [interviewType, setInterviewType] = useState<InterviewType>("enterprise");
+
+  // 企业面试字段
+  const [companyName, setCompanyName] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [jobDescription, setJobDescription] = useState("");
+
+  // 考研面试字段
+  const [schoolName, setSchoolName] = useState("");
+  const [majorName, setMajorName] = useState("");
+
+  // 共同字段
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -36,7 +47,6 @@ export default function StartPage() {
       setCurrentUser(e.detail);
       if (pendingStartRef.current) {
         pendingStartRef.current = false;
-        // Small delay to ensure state and modal logic clear
         setTimeout(() => triggerStart(e.detail), 300);
       }
     };
@@ -48,9 +58,30 @@ export default function StartPage() {
     };
   }, []);
 
+  // 表单验证
   const isFormValid = useMemo(() => {
-    return !!jobTitle.trim() && !!jobDescription.trim() && !!file;
-  }, [jobTitle, jobDescription, file]);
+    const hasResume = !!file;
+    if (interviewType === "enterprise") {
+      return !!companyName.trim() && !!jobTitle.trim() && !!jobDescription.trim() && hasResume;
+    } else {
+      return !!schoolName.trim() && !!majorName.trim() && hasResume;
+    }
+  }, [interviewType, companyName, jobTitle, jobDescription, schoolName, majorName, file]);
+
+  // 类型切换时清空表单
+  const handleTypeChange = (type: InterviewType) => {
+    setInterviewType(type);
+    setFormError("");
+    // 清空对方类型的字段
+    if (type === "enterprise") {
+      setSchoolName("");
+      setMajorName("");
+    } else {
+      setCompanyName("");
+      setJobTitle("");
+      setJobDescription("");
+    }
+  };
 
   const showNotice = (text: string, type: "success" | "info" = "info", duration = 2000) => {
     const id = Date.now();
@@ -63,34 +94,36 @@ export default function StartPage() {
   const triggerStart = async (user?: AuthUser | null) => {
     setFormError("");
     if (!isFormValid) {
-      showNotice("请填写完整岗位信息并上传简历", "info");
+      showNotice("请填写完整信息并上传简历", "info");
       return;
     }
 
     setLoading(true);
-    const formData = new FormData();
-    formData.append("job_title", jobTitle);
-    formData.append("job_description", jobDescription);
-    formData.append("resume", file as File);
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/init-interview`, formData, {
-        headers: {
-          ...buildAuthHeaders(),
-          "Content-Type": "multipart/form-data",
-        },
+      const result = await initInterview({
+        interviewType,
+        resume: file!,
+        // 企业面试
+        companyName: interviewType === "enterprise" ? companyName : undefined,
+        jobTitle: interviewType === "enterprise" ? jobTitle : undefined,
+        jobDescription: interviewType === "enterprise" ? jobDescription : undefined,
+        // 考研面试
+        schoolName: interviewType === "postgraduate" ? schoolName : undefined,
+        majorName: interviewType === "postgraduate" ? majorName : undefined,
       });
 
-      if (response.data?.code === 200) {
-        const { session_id, first_question } = response.data.data;
-        localStorage.setItem("interview_session_id", session_id);
-        localStorage.setItem("first_question", first_question);
+      if (result.ok) {
+        localStorage.setItem("interview_session_id", result.sessionId);
+        localStorage.setItem("first_question", result.firstQuestion);
+        localStorage.setItem("interview_type", interviewType);
         router.push("/chat");
         return;
       }
-      setFormError(`初始化失败：${response.data?.message || "服务异常"}`);
+      setFormError(result.message);
     } catch (error: any) {
-      setFormError(`初始化失败：${error.response?.data?.detail || error.message}`);
+      const errorMsg = error?.message || String(error) || "服务异常";
+      setFormError(`初始化失败：${errorMsg}`);
     } finally {
       setLoading(false);
     }
@@ -99,7 +132,7 @@ export default function StartPage() {
   const handleSubmit = async () => {
     setFormError("");
     if (!isFormValid) {
-      showNotice("需提供岗位名称、JD 及 PDF 简历", "info");
+      showNotice("请填写完整信息并上传简历", "info");
       return;
     }
     if (!currentUser) {
@@ -125,7 +158,7 @@ export default function StartPage() {
   }
 
   return (
-    <main className="h-full overflow-y-auto text-slate-900 relative flex flex-col items-center pt-[15vh] px-4 font-sans selection:bg-black selection:text-white animate-v7-fade" style={{ background: "linear-gradient(135deg, #f0f4ff 0%, #fafbff 40%, #f0fffe 70%, #f5f3ff 100%)" }}>
+    <main className="h-full overflow-y-auto text-slate-900 relative flex flex-col items-center pt-[12vh] px-4 font-sans selection:bg-black selection:text-white animate-v7-fade" style={{ background: "linear-gradient(135deg, #f0f4ff 0%, #fafbff 40%, #f0fffe 70%, #f5f3ff 100%)" }}>
       {/* Vivid Ambient Background */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[5%] right-[5%] w-[50%] h-[40%] rounded-full bg-gradient-to-b from-indigo-200/50 via-sky-200/20 to-transparent blur-[80px] animate-pulse" style={{ animationDuration: "9s" }} />
@@ -141,39 +174,109 @@ export default function StartPage() {
       )}
 
       {/* Hero Greeting */}
-      <div className="text-center mb-10 w-full max-w-3xl">
+      <div className="text-center mb-8 w-full max-w-3xl">
         <h1 className="text-4xl md:text-[2.75rem] font-semibold tracking-tight text-slate-900 mb-4 inline-flex items-center justify-center gap-3 w-full">
           准备好面试了吗？
         </h1>
         <p className="text-lg md:text-xl text-slate-500 font-light max-w-lg mx-auto leading-relaxed">
-          描述你的理想工作，附上简历，<br className="hidden sm:block" />我们帮你拿下面试。
+          选择面试类型，填写相关信息，我们帮你拿下面试。
         </p>
+      </div>
+
+      {/* Interview Type Selector */}
+      <div className="w-full max-w-3xl mb-6">
+        <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-1.5 shadow-sm border border-slate-200/60 inline-flex">
+          <button
+            onClick={() => handleTypeChange("enterprise")}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+              interviewType === "enterprise"
+                ? "bg-slate-900 text-white shadow-md"
+                : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/50"
+            }`}
+          >
+            <Building2 size={18} />
+            企业面试
+          </button>
+          <button
+            onClick={() => handleTypeChange("postgraduate")}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+              interviewType === "postgraduate"
+                ? "bg-slate-900 text-white shadow-md"
+                : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/50"
+            }`}
+          >
+            <GraduationCap size={18} />
+            考研面试
+          </button>
+        </div>
       </div>
 
       {/* AI Command Center Input */}
       <div className="w-full max-w-3xl bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-200 p-2 transition-all hover:shadow-[0_8px_40px_rgb(0,0,0,0.1)] focus-within:shadow-[0_8px_40px_rgb(0,0,0,0.1)] focus-within:border-slate-300 group">
         <div className="p-3 sm:p-5 flex flex-col gap-4">
           
-          {/* Job Title Input */}
-          <input
-            type="text"
-            placeholder="岗位名称 ( 例如：高级系统架构师 )"
-            className="w-full bg-transparent text-xl md:text-2xl font-medium text-slate-900 placeholder:text-slate-300 outline-none border-0 px-2 tracking-tight transition-all"
-            value={jobTitle}
-            onChange={(e) => setJobTitle(e.target.value)}
-          />
+          {interviewType === "enterprise" ? (
+            // 企业面试表单
+            <>
+              <input
+                type="text"
+                placeholder="企业名称 (例如：字节跳动、阿里巴巴)"
+                className="w-full bg-transparent text-xl md:text-2xl font-medium text-slate-900 placeholder:text-slate-300 outline-none border-0 px-2 tracking-tight transition-all"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+              />
 
-          <div className="h-px w-full bg-gradient-to-r from-slate-100 via-slate-200 to-slate-100 my-1 rounded-full opacity-50 group-focus-within:opacity-100 transition-opacity"></div>
+              <div className="h-px w-full bg-gradient-to-r from-slate-100 via-slate-200 to-slate-100 my-1 rounded-full opacity-50 group-focus-within:opacity-100 transition-opacity"></div>
 
-          {/* JD Input */}
-          <textarea
-            rows={1}
-            placeholder="粘贴对应的职位描述 (JD)，以便 AI 考官量身定制面试策略..."
-            className="w-full bg-transparent text-base md:text-[17px] text-slate-700 placeholder:text-slate-400 outline-none border-0 px-2 resize-none min-h-[50px] max-h-[40vh] leading-relaxed overflow-hidden transition-all"
-            value={jobDescription}
-            onChange={autoResize}
-            style={{ minHeight: '50px' }}
-          />
+              <input
+                type="text"
+                placeholder="岗位名称 (例如：高级前端工程师)"
+                className="w-full bg-transparent text-lg md:text-xl font-medium text-slate-900 placeholder:text-slate-300 outline-none border-0 px-2 tracking-tight transition-all"
+                value={jobTitle}
+                onChange={(e) => setJobTitle(e.target.value)}
+              />
+
+              <div className="h-px w-full bg-gradient-to-r from-slate-100 via-slate-200 to-slate-100 my-1 rounded-full opacity-50 group-focus-within:opacity-100 transition-opacity"></div>
+
+              <textarea
+                rows={1}
+                placeholder="粘贴对应的职位描述 (JD)，以便 AI 考官量身定制面试策略..."
+                className="w-full bg-transparent text-base md:text-[17px] text-slate-700 placeholder:text-slate-400 outline-none border-0 px-2 resize-none min-h-[50px] max-h-[40vh] leading-relaxed overflow-hidden transition-all"
+                value={jobDescription}
+                onChange={autoResize}
+                style={{ minHeight: '50px' }}
+              />
+            </>
+          ) : (
+            // 考研面试表单
+            <>
+              <input
+                type="text"
+                placeholder="学校名称 (例如：清华大学、北京大学)"
+                className="w-full bg-transparent text-xl md:text-2xl font-medium text-slate-900 placeholder:text-slate-300 outline-none border-0 px-2 tracking-tight transition-all"
+                value={schoolName}
+                onChange={(e) => setSchoolName(e.target.value)}
+              />
+
+              <div className="h-px w-full bg-gradient-to-r from-slate-100 via-slate-200 to-slate-100 my-1 rounded-full opacity-50 group-focus-within:opacity-100 transition-opacity"></div>
+
+              <input
+                type="text"
+                placeholder="专业名称 (例如：计算机科学与技术)"
+                className="w-full bg-transparent text-lg md:text-xl font-medium text-slate-900 placeholder:text-slate-300 outline-none border-0 px-2 tracking-tight transition-all"
+                value={majorName}
+                onChange={(e) => setMajorName(e.target.value)}
+              />
+
+              <div className="h-px w-full bg-gradient-to-r from-slate-100 via-slate-200 to-slate-100 my-1 rounded-full opacity-50 group-focus-within:opacity-100 transition-opacity"></div>
+
+              <div className="px-2 py-3 bg-slate-50 rounded-xl">
+                <p className="text-sm text-slate-500 leading-relaxed">
+                  💡 考研面试将重点考察：专业基础知识、科研潜力、学术兴趣、学习能力和研究生规划。
+                </p>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Toolbar */}
@@ -243,6 +346,8 @@ export default function StartPage() {
         <span className="inline-flex items-center gap-1.5 text-slate-500"><Sparkles size={14} /> 纯动态追问架构</span>
         <span className="w-1 h-1 rounded-full bg-slate-300"></span>
         <span>深度简历解析</span>
+        <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+        <span>智能面经推荐</span>
         <span className="w-1 h-1 rounded-full bg-slate-300"></span>
         <span>专业评估打分</span>
       </div>
